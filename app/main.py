@@ -20,7 +20,8 @@ WEB_ROOT: Path = PROJECT_ROOT / "web"
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="甲状腺超声图像答题系统",
+        title="ThyroPADA",
+        description="甲状腺超声图像判读与数据标注平台 API",
         version="0.1.0",
         docs_url="/api/docs",
         redoc_url=None,

@@ -145,6 +145,34 @@ def test_upload_questions_basic(client: TestClient) -> None:
     assert qs[0]["image_sha256"] != qs[1]["image_sha256"]
 
 
+def test_upload_questions_can_assign_batches(client: TestClient) -> None:
+    _make_user(client, "auth1", ROLE_AUTHOR)
+    _login(client, "auth1")
+    _create_task(client, code="batch_upload", is_published=True)
+
+    files = [
+        ("files", ("a.png", _png_bytes(11), "image/png")),
+        ("files", ("b.png", _png_bytes(12), "image/png")),
+        ("files", ("c.png", _png_bytes(13), "image/png")),
+    ]
+    r = client.post(
+        "/api/tasks/batch_upload/questions/upload",
+        data={
+            "ground_truths": json.dumps(["良性", "恶性", "良性"]),
+            "batch_index_start": "3",
+            "batch_size": "2",
+        },
+        files=files,
+    )
+    assert r.status_code == 201, r.text
+    qs = r.json()
+    assert [(q["batch_index"], q["batch_position"]) for q in qs] == [
+        (3, 0),
+        (3, 1),
+        (4, 0),
+    ]
+
+
 def test_doctor_can_list_task_batches_with_attempt_status(client: TestClient) -> None:
     author = TestClient(client.app)
     _make_user(author, "auth1", ROLE_AUTHOR)

@@ -1,9 +1,9 @@
-// admin 后台：用户管理 + 答题筛选 + 导出
+// 平台管理：账号管理 + 判读记录筛选 + 数据导出
 import { apiGet, apiPatch, fetchMe } from "./api.js";
 
 const $ = (id) => document.getElementById(id);
 
-const ROLE_LABELS = { admin: "管理员", author: "出题人", doctor: "医生" };
+const ROLE_LABELS = { admin: "管理员", author: "任务管理员", doctor: "判读者" };
 const STATUS_LABELS = { in_progress: "进行中", submitted: "已提交" };
 
 function escapeHtml(s) {
@@ -129,7 +129,7 @@ async function loadAttempts() {
     if (!list.length) { root.innerHTML = `<p class="brand-copy">无结果</p>`; return; }
     root.innerHTML = `
       <table class="history-table">
-        <thead><tr><th>ID</th><th>用户</th><th>任务</th><th>状态</th><th>得分</th><th>开始</th><th>提交</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>用户</th><th>研究任务</th><th>状态</th><th>参考一致性</th><th>开始</th><th>提交</th><th></th></tr></thead>
         <tbody>${list.map((a) => `
           <tr>
             <td>${a.id}</td>

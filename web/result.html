@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>答题结果 · 甲状腺超声</title>
+  <title>判读结果 · ThyroPADA</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
 
   <header class="site-header">
     <div class="brand-lockup">
-      <p class="eyebrow">答题结果</p>
-      <h1 id="task-name">答题结果</h1>
+      <p class="eyebrow">判读结果</p>
+      <h1 id="task-name">判读结果</h1>
       <p class="brand-copy" id="task-meta">加载中…</p>
     </div>
     <nav class="header-links">
@@ -28,7 +28,7 @@
           <span>完成率</span>
         </div>
         <div class="summary-grid">
-          <div class="summary-card"><span>已答</span><strong id="answered-num">-</strong></div>
+          <div class="summary-card"><span>已评估</span><strong id="answered-num">-</strong></div>
           <div class="summary-card"><span>题数</span><strong id="total-num">-</strong></div>
           <div class="summary-card"><span>标记复查</span><strong id="review-num">-</strong></div>
           <div class="summary-card"><span>提交时间</span><strong id="submitted-at">-</strong></div>
@@ -39,8 +39,8 @@
     <section class="panel">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">明细</p>
-          <h2>我的作答</h2>
+          <p class="eyebrow">逐图像明细</p>
+          <h2>我的判读</h2>
         </div>
       </div>
       <div id="rows-root" class="result-rows"><p class="brand-copy">加载中…</p></div>
@@ -48,7 +48,7 @@
   </main>
 
   <div class="lightbox hidden" id="lightbox">
-    <div class="lightbox-toolbar" role="toolbar" aria-label="图片查看工具">
+    <div class="lightbox-toolbar" role="toolbar" aria-label="图像查看工具">
       <button type="button" class="lightbox-tool" id="zoom-out-btn">缩小</button>
       <button type="button" class="lightbox-tool" id="zoom-in-btn">放大</button>
       <button type="button" class="lightbox-tool" id="fit-btn">适应窗口</button>

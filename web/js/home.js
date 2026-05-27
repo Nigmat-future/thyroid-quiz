@@ -1,9 +1,9 @@
-// 首页：登录态展示 + 任务列表 + 历史。
+// 首页：登录态展示 + 研究任务列表 + 判读历史。
 import { fetchMe, apiGet, apiPost } from "./api.js";
 
 const $ = (id) => document.getElementById(id);
 
-const ROLE_LABELS = { admin: "管理员", author: "出题人", doctor: "医生" };
+const ROLE_LABELS = { admin: "管理员", author: "任务管理员", doctor: "判读者" };
 const STATUS_LABELS = { in_progress: "进行中", submitted: "已提交" };
 const BATCH_STATUS_LABELS = { not_started: "未开始", in_progress: "进行中", submitted: "已提交" };
 const BATCH_STATUS_CLASS = { not_started: "chip-muted", in_progress: "chip-warning", submitted: "chip-success" };
@@ -28,7 +28,7 @@ async function startAttempt(code, batchIndex = null) {
     const a = await apiPost("/api/attempts", payload);
     window.location.href = `/quiz/${a.id}`;
   } catch (e) {
-    alert(e.message || "无法开始答题");
+    alert(e.message || "无法开始判读");
   }
 }
 
@@ -65,7 +65,7 @@ function renderBatchAction(task, batch) {
     }
     return `<a class="btn" href="/result/${attemptId}">查看结果</a>`;
   }
-  const label = status === "in_progress" ? "继续作答" : "开始作答";
+  const label = status === "in_progress" ? "继续判读" : "开始判读";
   return `
     <button
       class="btn btn-primary"
@@ -109,7 +109,7 @@ function renderTaskCard(task) {
     ? renderBatchList(task)
     : `
       <div class="actions">
-        <button class="btn btn-primary" data-action="start-task" data-code="${escapeHtml(task.code)}">${task.is_published ? "开始 / 续答" : "草稿（不可答）"}</button>
+        <button class="btn btn-primary" data-action="start-task" data-code="${escapeHtml(task.code)}">${task.is_published ? "开始 / 续读" : "草稿（未开放）"}</button>
       </div>`;
 
   return `
@@ -122,7 +122,7 @@ function renderTaskCard(task) {
         <span class="chip ${task.is_published ? "chip-success" : "chip-muted"}">${task.is_published ? "已发布" : "草稿"}</span>
       </div>
       ${task.description ? `<p class="brand-copy">${escapeHtml(task.description)}</p>` : ""}
-      <p class="task-meta">选项：${answerOptions.map(escapeHtml).join(" · ")}</p>
+      <p class="task-meta">判读选项：${answerOptions.map(escapeHtml).join(" · ")}</p>
       ${taskAction}
     </article>`;
 }
@@ -132,7 +132,7 @@ async function renderTasks() {
   try {
     const tasks = await apiGet("/api/tasks");
     if (!tasks.length) {
-      root.innerHTML = `<p class="brand-copy">暂无可答任务。</p>`;
+      root.innerHTML = `<p class="brand-copy">暂无研究任务。</p>`;
       return;
     }
     const withBatches = await Promise.all(tasks.map(async (task) => {
@@ -167,12 +167,12 @@ async function renderHistory() {
   try {
     const list = await apiGet("/api/attempts");
     if (!list.length) {
-      root.innerHTML = `<p class="brand-copy">还没有答题记录。</p>`;
+      root.innerHTML = `<p class="brand-copy">还没有判读记录。</p>`;
       return;
     }
     root.innerHTML = `
       <table class="history-table">
-        <thead><tr><th>任务</th><th>状态</th><th>得分</th><th>开始</th><th>提交</th><th></th></tr></thead>
+        <thead><tr><th>研究任务</th><th>状态</th><th>参考一致性</th><th>开始</th><th>提交</th><th></th></tr></thead>
         <tbody>${list.map((a) => `
           <tr>
             <td>${historyTaskLabel(a)}</td>
@@ -180,7 +180,7 @@ async function renderHistory() {
             <td>${a.status === "submitted" ? `${a.correct}/${a.total} (${(a.score * 100).toFixed(1)}%)` : "-"}</td>
             <td>${fmt(a.started_at)}</td>
             <td>${fmt(a.submitted_at)}</td>
-            <td><a class="btn" href="${a.status === "submitted" ? `/result/${a.id}` : `/quiz/${a.id}`}">${a.status === "submitted" ? "查看结果" : "继续作答"}</a></td>
+            <td><a class="btn" href="${a.status === "submitted" ? `/result/${a.id}` : `/quiz/${a.id}`}">${a.status === "submitted" ? "查看结果" : "继续判读"}</a></td>
           </tr>
         `).join("")}</tbody>
       </table>`;
@@ -211,8 +211,8 @@ async function render() {
         <p class="brand-copy">用户名：<code>${escapeHtml(me.username)}</code></p>
       </div>
       <div class="actions">
-        ${me.role === "admin" ? `<a class="btn" href="/admin">管理后台</a>` : ""}
-        ${me.role !== "doctor" ? `<a class="btn" href="/author">出题后台</a>` : ""}
+        ${me.role === "admin" ? `<a class="btn" href="/admin">平台管理中心</a>` : ""}
+        ${me.role !== "doctor" ? `<a class="btn" href="/author">研究任务工作台</a>` : ""}
         <button type="button" class="btn" id="logout-btn">退出登录</button>
       </div>
     </div>`;

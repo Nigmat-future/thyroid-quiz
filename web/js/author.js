@@ -1,4 +1,4 @@
-// 出题人首页：新建任务 + 列出任务（自己 + 已发布）
+// 任务管理员首页：新建任务 + 列出任务（自己 + 已发布）
 import { apiGet, apiPost, fetchMe } from "./api.js";
 
 const $ = (id) => document.getElementById(id);
@@ -33,7 +33,7 @@ async function ensureAuthor() {
     document.querySelector("main").innerHTML = `
       <section class="panel">
         <h2>权限不足</h2>
-        <p class="brand-copy">当前账号是 <strong>${escapeHtml(me.role)}</strong>，仅 author / admin 可访问出题后台。</p>
+        <p class="brand-copy">当前账号是 <strong>${escapeHtml(me.role)}</strong>，仅 author / admin 可访问研究任务工作台。</p>
         <p><a class="btn" href="/">返回首页</a></p>
       </section>`;
     return null;
@@ -59,9 +59,9 @@ async function loadTasks() {
           <span class="chip ${t.is_published ? "chip-success" : "chip-muted"}">${t.is_published ? "已发布" : "草稿"}</span>
         </div>
         ${t.description ? `<p class="brand-copy">${escapeHtml(t.description)}</p>` : ""}
-        <p class="task-meta">选项：${t.answer_options.map(escapeHtml).join(" · ")}</p>
+        <p class="task-meta">判读选项：${t.answer_options.map(escapeHtml).join(" · ")}</p>
         <div class="actions">
-          <a class="btn btn-primary" href="/author/tasks/${encodeURIComponent(t.code)}">管理题目</a>
+          <a class="btn btn-primary" href="/author/tasks/${encodeURIComponent(t.code)}">管理图像</a>
         </div>
       </article>
     `).join("");
@@ -78,7 +78,7 @@ function bindCreate() {
     setFeedback("create-feedback", "");
     const options = parseOptions($("options").value);
     if (options.length < 2) {
-      setFeedback("create-feedback", "至少需要 2 个答案选项");
+      setFeedback("create-feedback", "至少需要 2 个判读选项");
       return;
     }
     const payload = {

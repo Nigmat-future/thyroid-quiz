@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>管理后台 · 甲状腺答题</title>
+  <title>平台管理中心 · ThyroPADA</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -12,12 +12,12 @@
   <header class="site-header">
     <div class="brand-lockup">
       <p class="eyebrow">管理工作台</p>
-      <h1>管理后台</h1>
-      <p class="brand-copy">用户角色管理 · 答题记录浏览 · CSV 导出。</p>
+      <h1>平台管理中心</h1>
+      <p class="brand-copy">管理研究账号、判读记录、参考一致性结果与结构化 CSV 导出。</p>
     </div>
     <nav class="header-links">
       <a href="/" class="nav-link">首页</a>
-      <a href="/author" class="nav-link">出题</a>
+      <a href="/author" class="nav-link">图像集</a>
       <a href="/admin" class="nav-link active">管理</a>
     </nav>
   </header>
@@ -25,20 +25,20 @@
   <main class="page-shell">
     <nav class="tabs">
       <button class="tab active" data-tab="users">用户</button>
-      <button class="tab" data-tab="attempts">答题记录</button>
+      <button class="tab" data-tab="attempts">判读记录</button>
       <button class="tab" data-tab="exports">导出</button>
     </nav>
 
     <section class="panel tab-pane" data-pane="users">
       <div class="panel-head">
-        <div><p class="eyebrow">用户管理</p><h2>所有账号</h2></div>
+        <div><p class="eyebrow">用户管理</p><h2>研究账号</h2></div>
       </div>
       <div id="users-root"><p class="brand-copy">加载中…</p></div>
     </section>
 
     <section class="panel tab-pane hidden" data-pane="attempts">
       <div class="panel-head">
-        <div><p class="eyebrow">答题记录</p><h2>所有答题记录</h2></div>
+        <div><p class="eyebrow">判读记录</p><h2>全部判读记录</h2></div>
       </div>
       <form class="filter-grid" id="attempt-filter">
         <label class="field">
@@ -70,10 +70,10 @@
         <div><p class="eyebrow">导出</p><h2>下载 CSV</h2></div>
       </div>
       <div class="actions">
-        <a class="btn btn-primary" href="/api/admin/exports/attempts.csv" download>下载 attempts 总览</a>
-        <a class="btn" href="/api/admin/exports/answers.csv" download>下载逐题答案</a>
+        <a class="btn btn-primary" href="/api/admin/exports/attempts.csv" download>下载判读记录总览</a>
+        <a class="btn" href="/api/admin/exports/answers.csv" download>下载逐图像判读明细</a>
       </div>
-      <p class="brand-copy">CSV 使用 UTF-8 + BOM，可直接用 Excel 打开。</p>
+      <p class="brand-copy">导出文件为 UTF-8 + BOM，可直接用于 Excel、R 或 Python 统计分析。</p>
     </section>
   </main>
 
@@ -89,8 +89,8 @@
         <label class="field">
           <span>角色</span>
           <select id="m-role">
-            <option value="doctor">医生</option>
-            <option value="author">出题人</option>
+            <option value="doctor">判读者</option>
+            <option value="author">任务管理员</option>
             <option value="admin">管理员</option>
           </select>
         </label>

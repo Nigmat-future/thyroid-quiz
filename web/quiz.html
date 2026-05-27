@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>答题 · 甲状腺超声</title>
+  <title>图像判读 · ThyroPADA</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,11 +11,11 @@
 
   <header class="site-header compact">
     <div class="brand-lockup">
-      <p class="eyebrow" id="task-eyebrow">作答中</p>
+      <p class="eyebrow" id="task-eyebrow">图像判读中</p>
       <h1 id="task-name">加载中…</h1>
     </div>
     <nav class="header-links">
-      <a href="/" class="nav-link">← 退出（自动保存）</a>
+      <a href="/" class="nav-link">← 返回任务列表（自动保存）</a>
     </nav>
   </header>
 
@@ -23,13 +23,13 @@
     <aside class="panel quiz-sidebar">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">概况</p>
+          <p class="eyebrow">判读概况</p>
           <h2>进度</h2>
         </div>
         <span class="chip" id="save-state">未保存</span>
       </div>
       <div class="summary-grid quiz-metrics">
-        <div class="summary-card"><span>已答</span><strong id="answered-count">0</strong></div>
+        <div class="summary-card"><span>已评估</span><strong id="answered-count">0</strong></div>
         <div class="summary-card"><span>总题数</span><strong id="total-count">0</strong></div>
         <div class="summary-card"><span>复查</span><strong id="review-count">0</strong></div>
         <div class="summary-card"><span>批次</span><strong id="batch-label">-</strong></div>
@@ -40,11 +40,11 @@
       </div>
       <div class="nav-block">
         <div class="nav-head">
-          <h3>状态导航</h3>
-          <span id="progress-caption">已答 0 / 0</span>
+          <h3>图像导航</h3>
+          <span id="progress-caption">已评估 0 / 0</span>
         </div>
         <div class="question-nav" id="question-nav"></div>
-        <p class="question-nav-help">按题目状态分组；数字键 1-5 作答，左右箭头翻题。</p>
+        <p class="question-nav-help">按判读状态分组；数字键 1-5 选择等级，左右箭头切换图像。</p>
       </div>
     </aside>
 
@@ -53,7 +53,7 @@
         <div class="case-head">
           <div>
             <p class="eyebrow" id="question-counter">第 1 题</p>
-            <h2 id="question-title">题目</h2>
+            <h2 id="question-title">图像</h2>
           </div>
           <button type="button" class="btn review-toggle" id="review-toggle" aria-pressed="false">标记复查</button>
         </div>
@@ -65,15 +65,15 @@
         </div>
         <div class="image-grid single">
           <button type="button" class="image-tile" id="image-tile">
-            <img id="question-image" alt="题图" loading="eager">
+            <img id="question-image" alt="超声图像" loading="eager">
           </button>
         </div>
 
         <div class="answer-block">
           <div class="section-head">
             <div>
-              <p class="eyebrow">五档量表</p>
-              <h3>选择最符合的判断</h3>
+              <p class="eyebrow">五级判读量表</p>
+              <h3>请选择与图像特征最一致的判读等级</h3>
             </div>
             <span class="shortcut-hint">快捷键 1-5</span>
           </div>
@@ -82,7 +82,7 @@
 
         <label class="field note-field">
           <span>备注</span>
-          <textarea id="note-input" rows="4" placeholder="可填写观察要点"></textarea>
+          <textarea id="note-input" rows="4" placeholder="可记录超声征象、判读依据或不确定因素"></textarea>
         </label>
 
         <p class="feedback" id="quiz-feedback"></p>
@@ -92,13 +92,13 @@
         <button type="button" class="btn" id="prev-btn">上一题</button>
         <button type="button" class="btn" id="save-btn">立即保存</button>
         <button type="button" class="btn btn-primary" id="next-btn">下一题</button>
-        <button type="button" class="btn btn-danger" id="submit-btn">提交本次作答</button>
+        <button type="button" class="btn btn-danger" id="submit-btn">提交本次评估</button>
       </div>
     </section>
   </main>
 
   <div class="lightbox hidden" id="lightbox" aria-hidden="true">
-    <div class="lightbox-toolbar" role="toolbar" aria-label="图片查看工具">
+    <div class="lightbox-toolbar" role="toolbar" aria-label="图像查看工具">
       <button type="button" class="lightbox-tool" id="zoom-out-btn">缩小</button>
       <button type="button" class="lightbox-tool" id="zoom-in-btn">放大</button>
       <button type="button" class="lightbox-tool" id="fit-btn">适应窗口</button>
@@ -112,8 +112,8 @@
     <div class="modal-card panel submit-review-card">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">提交前复核</p>
-          <h2 id="submit-title">确认本次作答</h2>
+          <p class="eyebrow">提交前质控</p>
+          <h2 id="submit-title">确认提交判读结果</h2>
         </div>
       </div>
       <div class="submit-review-grid" id="submit-review-grid"></div>

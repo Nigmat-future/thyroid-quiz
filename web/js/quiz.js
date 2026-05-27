@@ -1,4 +1,4 @@
-// 答题主逻辑：load attempt -> 渲染题目 -> 自动保存 -> 提交。
+// 答题主逻辑：load attempt -> 渲染图像 -> 自动保存 -> 提交。
 import { api, apiGet, apiPost, fetchMe } from "./api.js";
 
 const $ = (id) => document.getElementById(id);
@@ -101,13 +101,13 @@ async function load() {
     }
     document.querySelector("main")?.replaceWith(Object.assign(document.createElement("div"), {
       className: "panel",
-      innerHTML: `<h2>无法加载答题</h2><p class="brand-copy">${escapeHtml(e.message)}</p>`,
+      innerHTML: `<h2>无法加载判读任务</h2><p class="brand-copy">${escapeHtml(e.message)}</p>`,
     }));
     return;
   }
 
   if (!attempt.questions.length) {
-    document.querySelector("main").innerHTML = `<section class="panel"><h2>该任务暂无题目</h2><a class="btn" href="/">返回首页</a></section>`;
+    document.querySelector("main").innerHTML = `<section class="panel"><h2>该任务暂无图像</h2><a class="btn" href="/">返回首页</a></section>`;
     return;
   }
 
@@ -129,7 +129,7 @@ async function load() {
   }
 
   $("task-name").textContent = attempt.task_name;
-  $("task-eyebrow").textContent = `作答中 · ${attempt.task_code}`;
+  $("task-eyebrow").textContent = `图像判读中 · ${attempt.task_code}`;
   $("total-count").textContent = String(attempt.questions.length);
   $("batch-label").textContent = `${(attempt.batch_index || 0) + 1} / ${attempt.batch_total || 1}`;
   $("quiz-shell").hidden = false;
@@ -203,7 +203,7 @@ function renderNav() {
   $("answered-count").textContent = String(ans);
   $("review-count").textContent = String(rev);
   $("progress-label").textContent = `${ans} / ${total}`;
-  $("progress-caption").textContent = `已答 ${ans} / ${total}`;
+  $("progress-caption").textContent = `已评估 ${ans} / ${total}`;
   $("progress-fill").style.width = total ? `${(ans / total) * 100}%` : "0%";
 }
 
@@ -391,7 +391,7 @@ function openSubmitReview() {
   accrueCurrentTime();
   const stats = submitStats();
   $("submit-review-grid").innerHTML = `
-    <div class="summary-card"><span>已答</span><strong>${stats.answered}</strong></div>
+    <div class="summary-card"><span>已评估</span><strong>${stats.answered}</strong></div>
     <div class="summary-card"><span>未答</span><strong>${stats.unanswered.length}</strong></div>
     <div class="summary-card"><span>复查</span><strong>${stats.review.length}</strong></div>
     <div class="summary-card"><span>累计用时</span><strong>${formatSeconds(stats.totalSeconds)}</strong></div>
@@ -404,7 +404,7 @@ function openSubmitReview() {
     </div>
   `;
   $("submit-review-list").innerHTML =
-    makeList("未作答题目", stats.unanswered, "无未作答题目。") +
+    makeList("未评估病例", stats.unanswered, "无未评估病例。") +
     makeList("已标记复查", stats.review, "无复查标记。");
 
   $("submit-review-list").querySelectorAll("button[data-jump]").forEach((btn) => {

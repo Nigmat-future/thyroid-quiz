@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>出题人后台 · 甲状腺答题</title>
+  <title>研究研究任务工作台 · ThyroPADA</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,13 +11,13 @@
 
   <header class="site-header">
     <div class="brand-lockup">
-      <p class="eyebrow">题库工作台</p>
-      <h1>出题人后台</h1>
-      <p class="brand-copy">创建任务、上传图片、设置标准答案。</p>
+      <p class="eyebrow">研究任务工作台</p>
+      <h1>研究研究任务工作台</h1>
+      <p class="brand-copy">创建研究任务、上传超声图像、维护专家参考标准与判读量表。</p>
     </div>
     <nav class="header-links">
       <a href="/" class="nav-link">首页</a>
-      <a href="/author" class="nav-link active">出题</a>
+      <a href="/author" class="nav-link active">图像集</a>
     </nav>
   </header>
 
@@ -26,7 +26,7 @@
       <div class="panel-head">
         <div>
           <p class="eyebrow">新建任务</p>
-          <h2>创建一个新题库</h2>
+          <h2>创建一个研究图像集</h2>
         </div>
       </div>
       <form id="create-form" class="form-grid two-col">
@@ -36,14 +36,14 @@
         </label>
         <label class="field">
           <span>任务名称 *</span>
-          <input id="name" name="name" type="text" required maxlength="128" placeholder="甲状腺良恶性二分类 v1">
+          <input id="name" name="name" type="text" required maxlength="128" placeholder="甲状腺结节良恶性判读研究 v1">
         </label>
         <label class="field field-wide">
           <span>说明</span>
-          <textarea id="description" rows="2" placeholder="可选；展示给医生看的说明"></textarea>
+          <textarea id="description" rows="2" placeholder="可选；展示给判读者看的说明"></textarea>
         </label>
         <label class="field field-wide">
-          <span>答案选项 *（逗号或换行分隔，至少 2 项）</span>
+          <span>判读选项 *（逗号或换行分隔，至少 2 项）</span>
           <textarea id="options" rows="2" required placeholder="良性, 恶性"></textarea>
         </label>
         <label class="field check-field">
@@ -52,7 +52,7 @@
         </label>
         <label class="field check-field">
           <input id="published" type="checkbox">
-          <span>立即发布（医生可见）</span>
+          <span>立即发布（判读者可见）</span>
         </label>
         <div class="actions field-wide">
           <button class="btn btn-primary" id="create-btn">创建任务</button>
@@ -65,7 +65,7 @@
       <div class="panel-head">
         <div>
           <p class="eyebrow">已有任务</p>
-          <h2>管理你的题库</h2>
+          <h2>管理研究任务</h2>
         </div>
       </div>
       <div id="tasks-list" class="tasks-list"><p class="brand-copy">加载中…</p></div>

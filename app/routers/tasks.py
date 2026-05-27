@@ -330,6 +330,8 @@ def upload_questions(
     files: list[UploadFile] = File(..., description="图片文件，可多选"),
     ground_truths: str = Form(..., description="JSON 数组，与 files 顺序对齐"),
     notes: str | None = Form(None, description="JSON 数组，可选"),
+    batch_index_start: int = Form(0, description="批次起始编号"),
+    batch_size: int = Form(0, description="每批题数；0 表示沿用单批"),
     user: User = Depends(require_role(ROLE_AUTHOR, ROLE_ADMIN)),
     db: Session = Depends(get_db),
 ) -> list[dict]:
@@ -344,6 +346,10 @@ def upload_questions(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"ground_truths 不是合法 JSON：{e}") from e
     if not isinstance(truths, list) or len(truths) != len(files):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "ground_truths 长度与文件数量不一致")
+    if batch_index_start < 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "batch_index_start 不能小于 0")
+    if batch_size < 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "batch_size 不能小于 0")
 
     note_list: list[str | None] = []
     if notes:
@@ -378,15 +384,22 @@ def upload_questions(
 
     created: list[Question] = []
     for i, (f, gt) in enumerate(zip(files, truths, strict=True)):
+        absolute_idx = next_idx + i
+        if batch_size:
+            batch_index = batch_index_start + (absolute_idx // batch_size)
+            batch_position = absolute_idx % batch_size
+        else:
+            batch_index = batch_index_start
+            batch_position = absolute_idx
         rel_path, sha = store_upload(f)
         q = Question(
             task_id=task.id,
             image_path=rel_path,
             image_sha256=sha,
             ground_truth=gt,
-            order_index=next_idx + i,
-            batch_index=0,
-            batch_position=next_idx + i,
+            order_index=absolute_idx,
+            batch_index=batch_index,
+            batch_position=batch_position,
             note=note_list[i],
             uploaded_by=user.id,
             is_deleted=0,

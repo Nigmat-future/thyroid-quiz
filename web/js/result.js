@@ -52,18 +52,18 @@ async function load() {
   $("submitted-at").textContent = fmt(res.submitted_at);
 
   const root = $("rows-root");
-  if (!rows.length) { root.innerHTML = `<p class="brand-copy">暂无题目</p>`; return; }
+  if (!rows.length) { root.innerHTML = `<p class="brand-copy">暂无图像</p>`; return; }
   root.innerHTML = rows.map((r, i) => `
     <article class="result-row">
       <button class="result-img" data-img="${escapeHtml(r.image_url)}">
-        <img src="${escapeHtml(r.image_url)}" loading="lazy" alt="题图">
+        <img src="${escapeHtml(r.image_url)}" loading="lazy" alt="超声图像">
       </button>
       <div class="result-row-body">
         <div class="result-row-head">
-          <p class="eyebrow">第 ${i + 1} 题 · 批内 ${rowLabel(r, i)}</p>
-          ${r.review_flag ? `<span class="chip chip-warning">已标记复查</span>` : ""}
+          <p class="eyebrow">第 ${i + 1} 张图像 · 批内 ${rowLabel(r, i)}</p>
+          ${r.review_flag ? `<span class="chip chip-warning">已标记需复核</span>` : ""}
         </div>
-        <p class="row-line"><span>我的答案</span><strong>${escapeHtml(r.answer_text || "(未答)")}</strong></p>
+        <p class="row-line"><span>我的判读</span><strong>${escapeHtml(r.answer_text || "(未判读)")}</strong></p>
         <p class="row-line"><span>用时</span><strong>${formatSeconds(r.time_spent_seconds || 0)}</strong></p>
         ${r.note ? `<p class="row-note"><span>备注</span> ${escapeHtml(r.note)}</p>` : ""}
       </div>

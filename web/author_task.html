@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>题目管理 · 甲状腺答题</title>
+  <title>图像集管理 · ThyroPADA</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,12 +11,12 @@
 
   <header class="site-header">
     <div class="brand-lockup">
-      <p class="eyebrow">题库管理</p>
-      <h1 id="task-name">题目管理</h1>
+      <p class="eyebrow">图像集管理</p>
+      <h1 id="task-name">图像集管理</h1>
       <p class="brand-copy" id="task-meta">加载中…</p>
     </div>
     <nav class="header-links">
-      <a href="/author" class="nav-link">← 返回出题</a>
+      <a href="/author" class="nav-link">← 返回任务管理</a>
     </nav>
   </header>
 
@@ -25,7 +25,7 @@
       <div class="panel-head">
         <div>
           <p class="eyebrow">设置</p>
-          <h2>任务参数</h2>
+          <h2>研究任务参数</h2>
         </div>
         <span id="publish-chip" class="chip"></span>
       </div>
@@ -38,17 +38,17 @@
       <div class="panel-head">
         <div>
           <p class="eyebrow">上传</p>
-          <h2>批量上传图片</h2>
+          <h2>批量上传超声图像</h2>
         </div>
       </div>
       <div class="upload-zone" id="drop-zone">
-        <p class="brand-copy">拖拽图片到这里，或点击选择文件（支持多选）。</p>
+        <p class="brand-copy">拖拽超声图像至此，或选择本地文件批量上传。</p>
         <input id="file-input" type="file" accept="image/*" multiple hidden>
-        <button type="button" class="btn" id="pick-btn">选择图片</button>
+        <button type="button" class="btn" id="pick-btn">选择图像</button>
       </div>
       <div id="pending-list" class="pending-list"></div>
       <div class="actions">
-        <button class="btn btn-primary" id="upload-btn" disabled>上传选中图片</button>
+        <button class="btn btn-primary" id="upload-btn" disabled>上传选中图像</button>
         <button class="btn" id="clear-btn" disabled>清空</button>
       </div>
       <p class="feedback" id="upload-feedback"></p>
@@ -57,8 +57,8 @@
     <section class="panel">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">题目</p>
-          <h2>已上传 <span id="q-count">0</span> 题</h2>
+          <p class="eyebrow">图像</p>
+          <h2>已纳入 <span id="q-count">0</span> 张图像</h2>
         </div>
       </div>
       <div id="questions-list" class="questions-grid"><p class="brand-copy">加载中…</p></div>

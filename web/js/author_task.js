@@ -1,4 +1,4 @@
-// 单任务管理页：上传图片 + 设答案 + 编辑/删除
+// 研究任务图像集管理：上传图像 + 维护参考标准
 import { api, apiGet, apiPatch, apiPost, apiDelete, fetchMe } from "./api.js";
 
 const code = decodeURIComponent(location.pathname.split("/").filter(Boolean).pop() || "");
@@ -35,7 +35,7 @@ async function ensureAuthor() {
 async function loadTask() {
   task = await apiGet(`/api/tasks/${encodeURIComponent(code)}/admin`);
   $("task-name").textContent = task.name;
-  $("task-meta").innerHTML = `编码 <code>${escapeHtml(task.code)}</code> · ${task.n_questions} 题 · 选项 ${task.answer_options.map(escapeHtml).join(" / ")}`;
+  $("task-meta").innerHTML = `编码 <code>${escapeHtml(task.code)}</code> · ${task.n_questions} 张图像 · 判读选项 ${task.answer_options.map(escapeHtml).join(" / ")}`;
   const chip = $("publish-chip");
   chip.textContent = task.is_published ? "已发布" : "草稿";
   chip.className = "chip " + (task.is_published ? "chip-success" : "chip-muted");
@@ -45,17 +45,17 @@ async function loadQuestions() {
   questions = await apiGet(`/api/tasks/${encodeURIComponent(code)}/questions`);
   $("q-count").textContent = String(questions.length);
   if (!questions.length) {
-    $("questions-list").innerHTML = `<p class="brand-copy">还没有题目，先在上方上传一些图片吧。</p>`;
+    $("questions-list").innerHTML = `<p class="brand-copy">还没有图像，先在上方上传一些图像吧。</p>`;
     return;
   }
   const opts = task.answer_options;
   $("questions-list").innerHTML = questions.map((q) => `
     <article class="question-card" data-id="${q.id}">
-      <img src="${escapeHtml(q.image_url)}" loading="lazy" alt="题图">
+      <img src="${escapeHtml(q.image_url)}" loading="lazy" alt="超声图像">
       <div class="question-card-body">
-        <p class="eyebrow">第 ${q.order_index + 1} 题</p>
+        <p class="eyebrow">第 ${q.order_index + 1} 张图像</p>
         <label class="field">
-          <span>标准答案</span>
+          <span>参考标准</span>
           <select data-role="gt">
             ${opts.map((o) => `<option value="${escapeHtml(o)}" ${o === q.ground_truth ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}
           </select>
@@ -92,7 +92,7 @@ async function loadQuestions() {
       } catch (e) { fb.dataset.kind = "error"; fb.textContent = e.message; }
     });
     card.querySelector('[data-role="del"]').addEventListener("click", async () => {
-      if (!confirm("确认删除此题？")) return;
+      if (!confirm("确认移除此图像？")) return;
       try {
         await apiDelete(`/api/questions/${id}`);
         await loadQuestions();
@@ -189,7 +189,7 @@ async function doUpload() {
     }
     pending.clear();
     renderPending();
-    setFeedback("upload-feedback", "上传成功！", "success");
+    setFeedback("upload-feedback", "图像上传完成", "success");
     await loadTask();
     await loadQuestions();
   } catch (err) {
