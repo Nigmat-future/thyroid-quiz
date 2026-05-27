@@ -41,4 +41,4 @@ RUN mkdir -p /app/data /app/storage/images
 EXPOSE 8000
 
 # 启动：先跑迁移再起服务；生产可改成由编排器单独执行迁移
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
