@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    container_name: thyroid-quiz
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      DATABASE_URL: sqlite:////app/data/thyroid_quiz.db
+      STORAGE_DIR: /app/storage
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理后台 · 甲状腺答题</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-backdrop"></div>
+
+  <header class="site-header">
+    <div class="brand-lockup">
+      <p class="eyebrow">管理工作台</p>
+      <h1>管理后台</h1>
+      <p class="brand-copy">用户角色管理 · 答题记录浏览 · CSV 导出。</p>
+    </div>
+    <nav class="header-links">
+      <a href="/" class="nav-link">首页</a>
+      <a href="/author" class="nav-link">出题</a>
+      <a href="/admin" class="nav-link active">管理</a>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <nav class="tabs">
+      <button class="tab active" data-tab="users">用户</button>
+      <button class="tab" data-tab="attempts">答题记录</button>
+      <button class="tab" data-tab="exports">导出</button>
+    </nav>
+
+    <section class="panel tab-pane" data-pane="users">
+      <div class="panel-head">
+        <div><p class="eyebrow">用户管理</p><h2>所有账号</h2></div>
+      </div>
+      <div id="users-root"><p class="brand-copy">加载中…</p></div>
+    </section>
+
+    <section class="panel tab-pane hidden" data-pane="attempts">
+      <div class="panel-head">
+        <div><p class="eyebrow">答题记录</p><h2>所有答题记录</h2></div>
+      </div>
+      <form class="filter-grid" id="attempt-filter">
+        <label class="field">
+          <span>任务编码</span>
+          <input id="f-task" type="text" placeholder="留空 = 全部">
+        </label>
+        <label class="field">
+          <span>用户 ID</span>
+          <input id="f-user" type="number" min="1">
+        </label>
+        <label class="field">
+          <span>状态</span>
+          <select id="f-status">
+            <option value="">全部</option>
+            <option value="in_progress">进行中</option>
+            <option value="submitted">已提交</option>
+          </select>
+        </label>
+        <div class="actions">
+          <button class="btn btn-primary">筛选</button>
+          <button class="btn" type="button" id="reset-filter">重置</button>
+        </div>
+      </form>
+      <div id="attempts-root" style="margin-top:18px"><p class="brand-copy">加载中…</p></div>
+    </section>
+
+    <section class="panel tab-pane hidden" data-pane="exports">
+      <div class="panel-head">
+        <div><p class="eyebrow">导出</p><h2>下载 CSV</h2></div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="/api/admin/exports/attempts.csv" download>下载 attempts 总览</a>
+        <a class="btn" href="/api/admin/exports/answers.csv" download>下载逐题答案</a>
+      </div>
+      <p class="brand-copy">CSV 使用 UTF-8 + BOM，可直接用 Excel 打开。</p>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="user-modal">
+    <div class="modal-card panel">
+      <div class="panel-head">
+        <div><p class="eyebrow">编辑用户</p><h2 id="modal-title">-</h2></div>
+        <button class="btn" id="modal-close">关闭</button>
+      </div>
+      <form class="form-grid two-col" id="user-form">
+        <input type="hidden" id="m-id">
+        <label class="field"><span>显示名</span><input type="text" id="m-display"></label>
+        <label class="field">
+          <span>角色</span>
+          <select id="m-role">
+            <option value="doctor">医生</option>
+            <option value="author">出题人</option>
+            <option value="admin">管理员</option>
+          </select>
+        </label>
+        <label class="field check-field">
+          <input type="checkbox" id="m-active">
+          <span>账号启用</span>
+        </label>
+        <label class="field">
+          <span>重置密码（留空则不改）</span>
+          <input type="password" id="m-password" minlength="6">
+        </label>
+        <div class="actions field-wide">
+          <button class="btn btn-primary">保存</button>
+        </div>
+        <p class="feedback" id="modal-feedback"></p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="/static/js/admin.js"></script>
+</body>
+</html>

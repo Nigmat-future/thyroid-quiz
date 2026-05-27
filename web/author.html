@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>出题人后台 · 甲状腺答题</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-backdrop"></div>
+
+  <header class="site-header">
+    <div class="brand-lockup">
+      <p class="eyebrow">题库工作台</p>
+      <h1>出题人后台</h1>
+      <p class="brand-copy">创建任务、上传图片、设置标准答案。</p>
+    </div>
+    <nav class="header-links">
+      <a href="/" class="nav-link">首页</a>
+      <a href="/author" class="nav-link active">出题</a>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">新建任务</p>
+          <h2>创建一个新题库</h2>
+        </div>
+      </div>
+      <form id="create-form" class="form-grid two-col">
+        <label class="field">
+          <span>任务编码 *</span>
+          <input id="code" name="code" type="text" required pattern="[a-z0-9][a-z0-9_-]*" minlength="2" maxlength="64" placeholder="thyroid_binary_v1">
+        </label>
+        <label class="field">
+          <span>任务名称 *</span>
+          <input id="name" name="name" type="text" required maxlength="128" placeholder="甲状腺良恶性二分类 v1">
+        </label>
+        <label class="field field-wide">
+          <span>说明</span>
+          <textarea id="description" rows="2" placeholder="可选；展示给医生看的说明"></textarea>
+        </label>
+        <label class="field field-wide">
+          <span>答案选项 *（逗号或换行分隔，至少 2 项）</span>
+          <textarea id="options" rows="2" required placeholder="良性, 恶性"></textarea>
+        </label>
+        <label class="field check-field">
+          <input id="randomize" type="checkbox">
+          <span>随机化选项顺序（防记位置）</span>
+        </label>
+        <label class="field check-field">
+          <input id="published" type="checkbox">
+          <span>立即发布（医生可见）</span>
+        </label>
+        <div class="actions field-wide">
+          <button class="btn btn-primary" id="create-btn">创建任务</button>
+        </div>
+        <p class="feedback" id="create-feedback"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">已有任务</p>
+          <h2>管理你的题库</h2>
+        </div>
+      </div>
+      <div id="tasks-list" class="tasks-list"><p class="brand-copy">加载中…</p></div>
+    </section>
+  </main>
+
+  <script type="module" src="/static/js/author.js"></script>
+</body>
+</html>

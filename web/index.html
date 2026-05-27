@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>甲状腺超声图像答题系统</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-backdrop"></div>
+
+  <header class="site-header">
+    <div class="brand-lockup">
+      <p class="eyebrow">甲状腺超声 · 医生答题平台</p>
+      <h1>甲状腺超声图像答题系统</h1>
+      <p class="brand-copy">面向医生与科研团队的病例图像答题、标准答案管理和结果统计工具。</p>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="panel">
+      <div id="auth-state"><p class="brand-copy">加载中…</p></div>
+    </section>
+
+    <div id="body-after-auth" class="hidden">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">可答任务</p>
+            <h2>选择任务或批次开始作答</h2>
+          </div>
+        </div>
+        <div id="tasks-root" class="tasks-list"><p class="brand-copy">加载中…</p></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">我的答题</p>
+            <h2>历史记录</h2>
+          </div>
+        </div>
+        <div id="history-root"><p class="brand-copy">加载中…</p></div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/static/js/home.js"></script>
+</body>
+</html>

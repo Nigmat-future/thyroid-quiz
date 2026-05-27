@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 甲状腺超声答题</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-backdrop"></div>
+
+  <main class="auth-shell">
+    <section class="panel auth-panel">
+      <p class="eyebrow">账号登录</p>
+      <h1 class="auth-title">登录</h1>
+      <p class="brand-copy">使用院内或项目账号进入答题系统。</p>
+
+      <form id="login-form" class="form-grid" autocomplete="on">
+        <label class="field">
+          <span>用户名</span>
+          <input id="username" name="username" type="text" autocomplete="username" required maxlength="64" placeholder="字母数字下划线">
+        </label>
+        <label class="field">
+          <span>密码</span>
+          <input id="password" name="password" type="password" autocomplete="current-password" required minlength="6" maxlength="128">
+        </label>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submit-btn">登录</button>
+        </div>
+        <p class="feedback" id="feedback"></p>
+      </form>
+
+      <p class="auth-foot">还没有账号？<a href="/register">注册账号</a></p>
+    </section>
+  </main>
+
+  <script type="module" src="/static/js/auth.js"></script>
+</body>
+</html>

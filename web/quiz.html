@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>答题 · 甲状腺超声</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-backdrop"></div>
+
+  <header class="site-header compact">
+    <div class="brand-lockup">
+      <p class="eyebrow" id="task-eyebrow">作答中</p>
+      <h1 id="task-name">加载中…</h1>
+    </div>
+    <nav class="header-links">
+      <a href="/" class="nav-link">← 退出（自动保存）</a>
+    </nav>
+  </header>
+
+  <main class="quiz-shell" id="quiz-shell" hidden>
+    <aside class="panel quiz-sidebar">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">概况</p>
+          <h2>进度</h2>
+        </div>
+        <span class="chip" id="save-state">未保存</span>
+      </div>
+      <div class="summary-grid quiz-metrics">
+        <div class="summary-card"><span>已答</span><strong id="answered-count">0</strong></div>
+        <div class="summary-card"><span>总题数</span><strong id="total-count">0</strong></div>
+        <div class="summary-card"><span>复查</span><strong id="review-count">0</strong></div>
+        <div class="summary-card"><span>批次</span><strong id="batch-label">-</strong></div>
+      </div>
+      <div class="progress-block">
+        <div class="progress-copy"><span>当前进度</span><strong id="progress-label">0 / 0</strong></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+      <div class="nav-block">
+        <div class="nav-head">
+          <h3>状态导航</h3>
+          <span id="progress-caption">已答 0 / 0</span>
+        </div>
+        <div class="question-nav" id="question-nav"></div>
+        <p class="question-nav-help">按题目状态分组；数字键 1-5 作答，左右箭头翻题。</p>
+      </div>
+    </aside>
+
+    <section class="quiz-main">
+      <article class="panel case-panel">
+        <div class="case-head">
+          <div>
+            <p class="eyebrow" id="question-counter">第 1 题</p>
+            <h2 id="question-title">题目</h2>
+          </div>
+          <button type="button" class="btn review-toggle" id="review-toggle" aria-pressed="false">标记复查</button>
+        </div>
+        <div class="case-meta-grid">
+          <div class="meta-card"><span>题号</span><strong id="meta-order">-</strong></div>
+          <div class="meta-card"><span>批内位置</span><strong id="meta-batch-pos">-</strong></div>
+          <div class="meta-card"><span>保存状态</span><strong id="meta-save">未保存</strong></div>
+          <div class="meta-card"><span>本题用时</span><strong id="meta-time">0 秒</strong></div>
+        </div>
+        <div class="image-grid single">
+          <button type="button" class="image-tile" id="image-tile">
+            <img id="question-image" alt="题图" loading="eager">
+          </button>
+        </div>
+
+        <div class="answer-block">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">五档量表</p>
+              <h3>选择最符合的判断</h3>
+            </div>
+            <span class="shortcut-hint">快捷键 1-5</span>
+          </div>
+          <div class="option-group" id="answer-options"></div>
+        </div>
+
+        <label class="field note-field">
+          <span>备注</span>
+          <textarea id="note-input" rows="4" placeholder="可填写观察要点"></textarea>
+        </label>
+
+        <p class="feedback" id="quiz-feedback"></p>
+      </article>
+
+      <div class="panel action-dock">
+        <button type="button" class="btn" id="prev-btn">上一题</button>
+        <button type="button" class="btn" id="save-btn">立即保存</button>
+        <button type="button" class="btn btn-primary" id="next-btn">下一题</button>
+        <button type="button" class="btn btn-danger" id="submit-btn">提交本次作答</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="lightbox hidden" id="lightbox" aria-hidden="true">
+    <div class="lightbox-toolbar" role="toolbar" aria-label="图片查看工具">
+      <button type="button" class="lightbox-tool" id="zoom-out-btn">缩小</button>
+      <button type="button" class="lightbox-tool" id="zoom-in-btn">放大</button>
+      <button type="button" class="lightbox-tool" id="fit-btn">适应窗口</button>
+      <button type="button" class="lightbox-tool" id="actual-btn">原始大小</button>
+      <button type="button" class="lightbox-close" id="lightbox-close">关闭</button>
+    </div>
+    <div class="lightbox-stage" id="lightbox-stage"><img id="lightbox-image" alt=""></div>
+  </div>
+
+  <div class="modal hidden" id="submit-modal" role="dialog" aria-modal="true" aria-labelledby="submit-title">
+    <div class="modal-card panel submit-review-card">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">提交前复核</p>
+          <h2 id="submit-title">确认本次作答</h2>
+        </div>
+      </div>
+      <div class="submit-review-grid" id="submit-review-grid"></div>
+      <div class="submit-review-list" id="submit-review-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="submit-cancel-btn">返回检查</button>
+        <button type="button" class="btn btn-primary" id="submit-confirm-btn">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/js/quiz.js"></script>
+</body>
+</html>
