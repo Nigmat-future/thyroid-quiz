@@ -6,6 +6,7 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -41,7 +42,15 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
         is_active=1,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # 以数据库唯一约束为最终防线，兜住并发注册同名用户的竞争窗口。
+        exists_after_commit = db.scalar(select(User.id).where(User.username == payload.username))
+        if exists_after_commit is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "用户名已被占用") from None
+        raise
     db.refresh(user)
 
     # 注册成功即自动登录

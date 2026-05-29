@@ -36,6 +36,58 @@ def test_register_dup_username_returns_409(client: TestClient) -> None:
     assert resp.status_code == 409
 
 
+def test_register_duplicate_race_returns_409(client: TestClient) -> None:
+    """查重与提交之间若发生同名插入，数据库唯一约束也应映射为 409。"""
+    from app.db import SessionLocal, get_db
+    from app.main import app as fastapi_app
+    from app.models import ROLE_DOCTOR, User
+    from app.security import hash_password
+
+    with SessionLocal() as db:
+        db.add(
+            User(
+                username="racer",
+                password_hash=hash_password("secret123"),
+                role=ROLE_DOCTOR,
+                is_active=1,
+            )
+        )
+        db.commit()
+
+    class RaceSession:
+        def __init__(self) -> None:
+            self._db = SessionLocal()
+            self._scalar_calls = 0
+
+        def scalar(self, statement):
+            self._scalar_calls += 1
+            if self._scalar_calls == 1:
+                return None
+            return self._db.scalar(statement)
+
+        def __getattr__(self, name: str):
+            return getattr(self._db, name)
+
+        def close(self) -> None:
+            self._db.close()
+
+    def override_db():
+        db = RaceSession()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    fastapi_app.dependency_overrides[get_db] = override_db
+    try:
+        other = TestClient(fastapi_app)
+        resp = _register(other, username="racer", password="anothersecret")
+    finally:
+        fastapi_app.dependency_overrides.pop(get_db, None)
+
+    assert resp.status_code == 409, resp.text
+
+
 def test_register_invalid_username(client: TestClient) -> None:
     # 太短
     assert _register(client, username="ab").status_code == 422
