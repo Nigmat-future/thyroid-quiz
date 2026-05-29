@@ -7,10 +7,18 @@ import json
 
 from fastapi.testclient import TestClient
 from PIL import Image
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db import SessionLocal
-from app.models import ROLE_ADMIN, ROLE_AUTHOR, ROLE_DOCTOR, Question, User
+from app.models import (
+    ROLE_ADMIN,
+    ROLE_AUTHOR,
+    ROLE_DOCTOR,
+    Answer,
+    Attempt,
+    Question,
+    User,
+)
 
 
 def _png_bytes(seed: int = 0) -> bytes:
@@ -380,3 +388,35 @@ def test_storage_path_traversal_blocked(client: TestClient) -> None:
     _login(client, "auth1")
     r = client.get("/storage/../etc/passwd")
     assert r.status_code in (400, 404)
+
+
+def test_delete_task_with_attempts_cleans_up(client: TestClient) -> None:
+    """删除有答题记录的任务：不应 500，且 attempts/answers 一并清理。
+
+    回归：之前只 db.delete(task)，attempts 会变孤儿或触发外键冲突。
+    """
+    _make_user(client, "admin1", ROLE_ADMIN)
+    _login(client, "admin1")
+    _create_task(client, code="delme", is_published=True)
+    r = client.post(
+        "/api/tasks/delme/questions/upload",
+        data={"ground_truths": json.dumps(["良性"])},
+        files=[("files", ("q0.png", _png_bytes(1), "image/png"))],
+    )
+    assert r.status_code == 201, r.text
+    qid = r.json()[0]["id"]
+
+    doctor = TestClient(client.app)
+    _make_user(doctor, "doc1", ROLE_DOCTOR)
+    _login(doctor, "doc1")
+    a = doctor.post("/api/attempts", json={"task_code": "delme"}).json()
+    doctor.put(f"/api/attempts/{a['id']}/answers/{qid}", json={"answer_text": "良性"})
+    assert doctor.post(f"/api/attempts/{a['id']}/submit").status_code == 200
+
+    d = client.delete("/api/tasks/delme")
+    assert d.status_code == 204, d.text
+
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count(Attempt.id))) == 0
+        assert db.scalar(select(func.count(Answer.id))) == 0
+        assert db.scalar(select(func.count(Question.id))) == 0

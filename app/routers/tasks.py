@@ -6,7 +6,7 @@ import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_role
@@ -15,6 +15,7 @@ from app.models import (
     ROLE_ADMIN,
     ROLE_AUTHOR,
     ROLE_DOCTOR,
+    Answer,
     Attempt,
     Question,
     Task,
@@ -295,6 +296,11 @@ def delete_task(
     task = db.scalar(select(Task).where(Task.code == code))
     if task is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在")
+    # 先清掉关联答题（answers→attempts），再删任务（questions 由 ORM 级联）。
+    # 否则 attempts 会变成孤儿（SQLite 不强制外键）或触发外键冲突（Postgres）。
+    attempt_ids = select(Attempt.id).where(Attempt.task_id == task.id)
+    db.execute(delete(Answer).where(Answer.attempt_id.in_(attempt_ids)))
+    db.execute(delete(Attempt).where(Attempt.task_id == task.id))
     db.delete(task)  # cascade 删 questions
     db.commit()
 

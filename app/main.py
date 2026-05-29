@@ -19,6 +19,12 @@ WEB_ROOT: Path = PROJECT_ROOT / "web"
 
 
 def create_app() -> FastAPI:
+    if settings.has_insecure_secret_key:
+        raise RuntimeError(
+            "生产环境检测到默认 SECRET_KEY；会话 Cookie 可被伪造。"
+            "请在部署平台设置 32+ 字节随机 SECRET_KEY 后重启。"
+        )
+
     app = FastAPI(
         title="ThyroPADA",
         description="甲状腺超声图像判读与数据标注平台 API",
