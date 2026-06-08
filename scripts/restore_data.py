@@ -115,10 +115,15 @@ def extract_images() -> int:
     for f in DATA.rglob("*.tar.gz"):
         if f.stat().st_size > 1_000_000:
             print(f"[restore] Extracting tar: {f}")
-            with tarfile.open(f, "r:gz") as tar:
-                safe_extract(tar, DATA)
-            os.remove(f)
-            extracted += 1
+            try:
+                with tarfile.open(f, "r:gz") as tar:
+                    safe_extract(tar, DATA)
+            except (EOFError, OSError, tarfile.TarError) as exc:
+                print(f"[restore] Skipping unreadable tar archive {f}: {exc}")
+                continue
+            else:
+                os.remove(f)
+                extracted += 1
 
     merge_misplaced_images()
 
