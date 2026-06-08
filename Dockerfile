@@ -41,4 +41,4 @@ RUN mkdir -p /app/data /app/storage/images
 EXPOSE 8000
 
 # 启动：先跑迁移与 admin 初始化，再起服务
-CMD ["sh", "-c", "alembic upgrade head && python -m scripts.init_admin && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "if [ -f /data/images.tar.gz ]; then tar -xzf /data/images.tar.gz -C /data/ && rm -f /data/images.tar.gz && echo 'Images extracted from tar'; fi && alembic upgrade head && python -m scripts.init_admin && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
