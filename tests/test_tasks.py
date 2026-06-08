@@ -19,6 +19,8 @@ from app.models import (
     Question,
     User,
 )
+from app.config import settings
+from app.services.storage import store_local_image
 
 
 def _png_bytes(seed: int = 0) -> bytes:
@@ -388,6 +390,21 @@ def test_storage_path_traversal_blocked(client: TestClient) -> None:
     _login(client, "auth1")
     r = client.get("/storage/../etc/passwd")
     assert r.status_code in (400, 404)
+
+
+def test_store_local_image_overwrites_truncated_existing_file(tmp_path) -> None:
+    source = tmp_path / "source.png"
+    raw = _png_bytes(42)
+    source.write_bytes(raw)
+
+    rel_path, _ = store_local_image(source)
+    target = settings.storage_dir / rel_path
+    target.write_bytes(b"")
+
+    rel_path_again, _ = store_local_image(source)
+
+    assert rel_path_again == rel_path
+    assert target.read_bytes() == raw
 
 
 def test_delete_task_with_attempts_cleans_up(client: TestClient) -> None:

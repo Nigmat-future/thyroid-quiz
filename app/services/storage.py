@@ -71,7 +71,7 @@ def _store_image_bytes(raw: bytes, filename: str | None = None) -> tuple[str, st
     bucket = settings.storage_images_dir / sha[:2]
     bucket.mkdir(parents=True, exist_ok=True)
     target = bucket / f"{sha}{ext}"
-    if not target.exists():
+    if not target.exists() or target.stat().st_size != len(raw):
         target.write_bytes(raw)
 
     rel = target.relative_to(settings.storage_dir).as_posix()
