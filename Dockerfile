@@ -41,4 +41,4 @@ RUN mkdir -p /app/data /app/storage/images
 EXPOSE 8000
 
 # 启动：先跑迁移与 admin 初始化，再起服务
-CMD ["sh", "-c", "bash /app/scripts/restore_data.sh && alembic upgrade head && python -m scripts.init_admin && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "sh /app/scripts/restore_data.sh; alembic upgrade head && python -m scripts.init_admin && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
