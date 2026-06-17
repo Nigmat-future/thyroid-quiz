@@ -642,6 +642,18 @@ h2 .chip {
   background: #111b19;
 }
 
+.pending-thumb {
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #111b19;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .pending-row-body {
   display: flex;
   min-width: 0;

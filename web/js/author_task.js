@@ -1,13 +1,23 @@
 // 研究任务图像集管理：上传图像 + 维护参考标准
 import { api, apiGet, apiPatch, apiPost, apiDelete, fetchMe } from "./api.js";
+import {
+  MAX_PENDING_PREVIEW_ROWS,
+  clearPendingItems,
+  createPendingItem,
+  nextUploadChunk,
+  pendingPreviewHtml,
+  revokePendingItem,
+  uploadQuestionChunk,
+} from "./upload_batches.js";
 
 const code = decodeURIComponent(location.pathname.split("/").filter(Boolean).pop() || "");
 const $ = (id) => document.getElementById(id);
 
 let task = null;       // TaskAdminPublic
 let questions = [];    // QuestionAdminPublic[]
-const pending = new Map();  // local-id -> { file, gt }
+const pending = new Map();  // local-id -> { file, gt, previewUrl }
 let pendingSeq = 0;
+let isUploading = false;
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({
@@ -20,6 +30,11 @@ function setFeedback(id, text, kind = "error") {
   if (!el) return;
   el.textContent = text || "";
   el.dataset.kind = kind;
+}
+
+function clearPending() {
+  clearPendingItems(pending.values());
+  pending.clear();
 }
 
 async function ensureAuthor() {
@@ -111,9 +126,10 @@ function renderPending() {
     $("clear-btn").disabled = true;
     return;
   }
-  root.innerHTML = [...pending.entries()].map(([key, item]) => `
+  const entries = [...pending.entries()];
+  root.innerHTML = entries.map(([key, item], index) => `
     <div class="pending-row" data-key="${key}">
-      <img src="${URL.createObjectURL(item.file)}" alt="预览">
+      ${pendingPreviewHtml(item, index)}
       <div class="pending-row-body">
         <strong>${escapeHtml(item.file.name)}</strong>
         <span class="brand-copy">${(item.file.size / 1024).toFixed(1)} KB</span>
@@ -123,19 +139,23 @@ function renderPending() {
       </div>
       <button class="btn" data-role="rm">移除</button>
     </div>
-  `).join("");
+  `).join("") + (entries.length > MAX_PENDING_PREVIEW_ROWS
+    ? `<p class="brand-copy">已选择 ${entries.length} 张图像；为保持页面流畅，仅前 ${MAX_PENDING_PREVIEW_ROWS} 张显示缩略图。</p>`
+    : "");
   root.querySelectorAll(".pending-row").forEach((row) => {
     const key = row.dataset.key;
     row.querySelector('[data-role="gt"]').addEventListener("change", (e) => {
       pending.get(key).gt = e.target.value;
     });
     row.querySelector('[data-role="rm"]').addEventListener("click", () => {
+      const item = pending.get(key);
+      revokePendingItem(item);
       pending.delete(key);
       renderPending();
     });
   });
-  $("upload-btn").disabled = false;
-  $("clear-btn").disabled = false;
+  $("upload-btn").disabled = isUploading;
+  $("clear-btn").disabled = isUploading;
 }
 
 function addFiles(fileList) {
@@ -143,7 +163,7 @@ function addFiles(fileList) {
   const defaultOpt = task.answer_options[0];
   for (const f of fileList) {
     if (!f.type.startsWith("image/")) continue;
-    pending.set(`p${++pendingSeq}`, { file: f, gt: defaultOpt });
+    pending.set(`p${++pendingSeq}`, createPendingItem(f, defaultOpt));
   }
   renderPending();
 }
@@ -159,7 +179,7 @@ function bindUploadZone() {
     zone.classList.remove("drag-over");
     addFiles(e.dataTransfer.files);
   });
-  $("clear-btn").addEventListener("click", () => { pending.clear(); renderPending(); });
+  $("clear-btn").addEventListener("click", () => { clearPending(); renderPending(); });
   $("upload-btn").addEventListener("click", doUpload);
   $("toggle-publish-btn").addEventListener("click", togglePublish);
 }
@@ -167,35 +187,41 @@ function bindUploadZone() {
 async function doUpload() {
   setFeedback("upload-feedback", "");
   if (!pending.size) return;
-  const fd = new FormData();
-  const truths = [];
-  for (const item of pending.values()) {
-    fd.append("files", item.file);
-    truths.push(item.gt);
-  }
-  fd.append("ground_truths", JSON.stringify(truths));
-
-  $("upload-btn").disabled = true;
+  const total = pending.size;
+  let uploaded = 0;
+  isUploading = true;
+  renderPending();
   try {
-    const res = await fetch(`/api/tasks/${encodeURIComponent(code)}/questions/upload`, {
-      method: "POST",
-      credentials: "same-origin",
-      body: fd,
-    });
-    if (!res.ok) {
-      let msg = `上传失败 (${res.status})`;
-      try { const j = await res.json(); if (j.detail) msg = j.detail; } catch {}
-      throw new Error(msg);
+    while (pending.size) {
+      const chunk = nextUploadChunk(pending);
+      setFeedback(
+        "upload-feedback",
+        `正在上传 ${uploaded + 1}-${uploaded + chunk.length} / ${total} 张图像…`,
+        "success",
+      );
+      await uploadQuestionChunk(code, chunk);
+      for (const [key, item] of chunk) {
+        revokePendingItem(item);
+        pending.delete(key);
+      }
+      uploaded += chunk.length;
+      renderPending();
     }
-    pending.clear();
-    renderPending();
-    setFeedback("upload-feedback", "图像上传完成", "success");
+    setFeedback("upload-feedback", `图像上传完成，共 ${uploaded} 张`, "success");
     await loadTask();
     await loadQuestions();
   } catch (err) {
-    setFeedback("upload-feedback", err.message || "上传失败");
+    if (uploaded > 0) {
+      await loadTask();
+      await loadQuestions();
+    }
+    setFeedback(
+      "upload-feedback",
+      `已上传 ${uploaded} / ${total} 张，剩余 ${pending.size} 张可重试。${err.message || "上传失败"}`,
+    );
   } finally {
-    $("upload-btn").disabled = pending.size === 0;
+    isUploading = false;
+    renderPending();
   }
 }
 
