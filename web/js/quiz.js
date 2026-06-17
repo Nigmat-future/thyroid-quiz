@@ -1,5 +1,6 @@
 // 答题主逻辑：load attempt -> 渲染图像 -> 自动保存 -> 提交。
 import { api, apiGet, apiPost, fetchMe } from "./api.js";
+import { preloadNextQuestionImage } from "./image_preload.js";
 
 const $ = (id) => document.getElementById(id);
 const attemptId = Number(location.pathname.split("/").filter(Boolean).pop() || 0);
@@ -12,6 +13,7 @@ let saveTimer = null;
 let questionEnterAt = Date.now();
 let timeTicker = null;
 let isSubmitting = false;
+let imagePreloadToken = 0;
 
 const SAVE_DEBOUNCE_MS = 600;
 
@@ -218,6 +220,7 @@ function renderQuestion(idx) {
   $("meta-order").textContent = String(q.order_index + 1);
   $("meta-batch-pos").textContent = `${questionLabel(q, idx)} / ${attempt.questions.length}`;
   $("question-image").src = q.image_url;
+  preloadNextWhenCurrentImageReady(idx);
   $("note-input").value = cur.note || "";
   $("review-toggle").classList.toggle("is-on", Boolean(cur.review_flag));
   $("review-toggle").setAttribute("aria-pressed", cur.review_flag ? "true" : "false");
@@ -248,6 +251,19 @@ function renderQuestion(idx) {
   updateTimeLabel();
   if (timeTicker) clearInterval(timeTicker);
   timeTicker = setInterval(updateTimeLabel, 1000);
+}
+
+function preloadNextWhenCurrentImageReady(idx) {
+  const token = ++imagePreloadToken;
+  const img = $("question-image");
+  const preload = () => {
+    if (token === imagePreloadToken) preloadNextQuestionImage(attempt.questions, idx);
+  };
+  if (img.complete) {
+    preload();
+  } else {
+    img.addEventListener("load", preload, { once: true });
+  }
 }
 
 function chooseAnswer(value) {
