@@ -63,7 +63,7 @@ function renderBatchAction(task, batch) {
     if (!attemptId) {
       return `<button class="btn" type="button" disabled>已提交</button>`;
     }
-    return `<a class="btn" href="/result/${attemptId}">查看结果</a>`;
+    return `<a class="btn" href="/result/${attemptId}">查看完成情况</a>`;
   }
   const label = status === "in_progress" ? "继续判读" : "开始判读";
   return `
@@ -162,6 +162,13 @@ function historyTaskLabel(attempt) {
   return parts.join("");
 }
 
+function formatCompletion(attempt) {
+  const answered = Number(attempt.answered || 0);
+  const total = Number(attempt.total || 0);
+  if (!total) return "-";
+  return `${answered}/${total} (${((answered / total) * 100).toFixed(1)}%)`;
+}
+
 async function renderHistory() {
   const root = $("history-root");
   try {
@@ -172,15 +179,15 @@ async function renderHistory() {
     }
     root.innerHTML = `
       <table class="history-table">
-        <thead><tr><th>研究任务</th><th>状态</th><th>参考一致性</th><th>开始</th><th>提交</th><th></th></tr></thead>
+        <thead><tr><th>研究任务</th><th>状态</th><th>完成度</th><th>开始</th><th>提交</th><th></th></tr></thead>
         <tbody>${list.map((a) => `
           <tr>
             <td>${historyTaskLabel(a)}</td>
             <td><span class="chip ${a.status === "submitted" ? "chip-success" : "chip-muted"}">${STATUS_LABELS[a.status] || a.status}</span></td>
-            <td>${a.status === "submitted" ? `${a.correct}/${a.total} (${(a.score * 100).toFixed(1)}%)` : "-"}</td>
+            <td>${formatCompletion(a)}</td>
             <td>${fmt(a.started_at)}</td>
             <td>${fmt(a.submitted_at)}</td>
-            <td><a class="btn" href="${a.status === "submitted" ? `/result/${a.id}` : `/quiz/${a.id}`}">${a.status === "submitted" ? "查看结果" : "继续判读"}</a></td>
+            <td><a class="btn" href="${a.status === "submitted" ? `/result/${a.id}` : `/quiz/${a.id}`}">${a.status === "submitted" ? "查看完成情况" : "继续判读"}</a></td>
           </tr>
         `).join("")}</tbody>
       </table>`;

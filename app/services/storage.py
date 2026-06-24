@@ -10,6 +10,16 @@ from fastapi import HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
 from app.config import settings
+from app.services.image_compression import (
+    DEFAULT_JPEG_QUALITY,
+    JPEG_EXTENSION,
+    AlreadyCompressed,
+    AnimatedImage,
+    CompressedBytes,
+    NotSmaller,
+    UnreadableImage,
+    compress_image_bytes,
+)
 
 # 允许的图片扩展名 → MIME 类型；用于回放时设置 Content-Type
 ALLOWED_EXTS = {
@@ -49,6 +59,22 @@ def _validate_image(data: bytes) -> str:
         ) from exc
 
 
+def _compressed_or_original(
+    raw: bytes,
+    filename: str | None,
+    sniffed_format: str | None,
+) -> tuple[bytes, str]:
+    """优先返回不缩放的高质量 JPEG；若没有变小则保留原图。"""
+    attempt = compress_image_bytes(raw, quality=DEFAULT_JPEG_QUALITY)
+    match attempt:
+        case CompressedBytes(data=compressed):
+            return compressed, JPEG_EXTENSION
+        case AlreadyCompressed() | AnimatedImage() | NotSmaller():
+            return raw, _ext_for(filename, sniffed_format)
+        case UnreadableImage(reason=reason):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"非法图片或文件损坏：{reason}")
+
+
 def _store_image_bytes(raw: bytes, filename: str | None = None) -> tuple[str, str]:
     """
     校验并落盘一张图片，返回 (image_path, sha256)。
@@ -65,14 +91,14 @@ def _store_image_bytes(raw: bytes, filename: str | None = None) -> tuple[str, st
         )
 
     sniffed = _validate_image(raw)
-    ext = _ext_for(filename, sniffed)
-    sha = hashlib.sha256(raw).hexdigest()
+    stored, ext = _compressed_or_original(raw, filename, sniffed)
+    sha = hashlib.sha256(stored).hexdigest()
 
     bucket = settings.storage_images_dir / sha[:2]
     bucket.mkdir(parents=True, exist_ok=True)
     target = bucket / f"{sha}{ext}"
-    if not target.exists() or target.stat().st_size != len(raw):
-        target.write_bytes(raw)
+    if not target.exists() or target.stat().st_size != len(stored):
+        target.write_bytes(stored)
 
     rel = target.relative_to(settings.storage_dir).as_posix()
     return rel, sha

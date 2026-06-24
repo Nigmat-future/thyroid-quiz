@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from sqlalchemy import func, select
 
+from app.config import settings
 from app.db import SessionLocal
 from app.models import (
     ROLE_ADMIN,
@@ -19,7 +20,6 @@ from app.models import (
     Question,
     User,
 )
-from app.config import settings
 from app.services.storage import store_local_image
 
 

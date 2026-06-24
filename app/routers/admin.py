@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -22,12 +21,24 @@ from app.models import (
     User,
 )
 from app.schemas import (
+    AdminAttemptDetail,
+    AdminAttemptDetailRow,
+    AdminAttemptDetailTask,
+    AdminAttemptDetailUser,
+    AdminAttemptMetrics,
     AttemptSummary,
     UserAdminUpdate,
     UserPublic,
 )
 from app.security import hash_password
+from app.services.attempt_metrics import (
+    AnswerMetricRow,
+    malignancy_score_for,
+    summarize_attempt_metrics,
+    truth_binary_for,
+)
 from app.services.csv_export import stream_answers_csv, stream_attempts_csv
+from app.services.fna import parse_source_note
 from app.services.storage import public_url_of
 
 admin_router = APIRouter(
@@ -79,6 +90,40 @@ def update_user(
 
 # ---------- attempts ----------
 
+def _questions_of_attempt(db: Session, attempt: Attempt) -> list[Question]:
+    return list(
+        db.scalars(
+            select(Question)
+            .where(
+                Question.task_id == attempt.task_id,
+                Question.batch_index == attempt.batch_index,
+                Question.is_deleted == 0,
+            )
+            .order_by(Question.batch_position, Question.order_index, Question.id)
+        ).all()
+    )
+
+
+def _answer_map(db: Session, attempt_id: int) -> dict[int, Answer]:
+    answers = db.scalars(select(Answer).where(Answer.attempt_id == attempt_id)).all()
+    return {answer.question_id: answer for answer in answers}
+
+
+def _metric_rows(
+    questions: list[Question],
+    answers_by_question: dict[int, Answer],
+) -> list[AnswerMetricRow]:
+    return [
+        AnswerMetricRow(
+            answer_text=answers_by_question[question.id].answer_text
+            if question.id in answers_by_question
+            else "",
+            ground_truth=question.ground_truth,
+        )
+        for question in questions
+    ]
+
+
 @admin_router.get("/attempts", response_model=list[AttemptSummary])
 def list_attempts(
     task_code: str | None = Query(None),
@@ -102,6 +147,9 @@ def list_attempts(
     rows = db.execute(stmt).all()
     out: list[AttemptSummary] = []
     for a, u, t in rows:
+        questions = _questions_of_attempt(db, a)
+        answers_by_question = _answer_map(db, a.id)
+        metrics = summarize_attempt_metrics(_metric_rows(questions, answers_by_question))
         out.append(
             AttemptSummary(
                 id=a.id,
@@ -116,6 +164,8 @@ def list_attempts(
                 score=a.score,
                 total=a.total,
                 correct=a.correct,
+                answered=metrics.answered,
+                auc=metrics.auc,
                 started_at=a.started_at,
                 submitted_at=a.submitted_at,
             )
@@ -123,54 +173,69 @@ def list_attempts(
     return out
 
 
-@admin_router.get("/attempts/{attempt_id}")
+@admin_router.get("/attempts/{attempt_id}", response_model=AdminAttemptDetail)
 def get_attempt_detail(
     attempt_id: int, db: Session = Depends(get_db)
-) -> dict[str, Any]:
+) -> AdminAttemptDetail:
     a = db.get(Attempt, attempt_id)
     if a is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "答题记录不存在")
     user = db.get(User, a.user_id)
     task = db.get(Task, a.task_id)
-    questions = db.scalars(
-        select(Question)
-        .where(Question.task_id == a.task_id, Question.is_deleted == 0)
-        .order_by(Question.order_index, Question.id)
-    ).all()
-    answers = db.scalars(select(Answer).where(Answer.attempt_id == a.id)).all()
-    amap = {an.question_id: an for an in answers}
-    rows = []
+    questions = _questions_of_attempt(db, a)
+    amap = _answer_map(db, a.id)
+    metrics = summarize_attempt_metrics(_metric_rows(questions, amap))
+    rows: list[AdminAttemptDetailRow] = []
     for q in questions:
         an = amap.get(q.id)
-        rows.append({
-            "question_id": q.id,
-            "order_index": q.order_index,
-            "batch_index": q.batch_index,
-            "batch_position": q.batch_position,
-            "image_url": public_url_of(q.image_path),
-            "ground_truth": q.ground_truth,
-            "answer_text": an.answer_text if an else "",
-            "note": an.note if an else "",
-            "review_flag": bool(an and an.review_flag),
-            "time_spent_seconds": an.time_spent_seconds if an else 0,
-            "is_correct": bool(an and an.is_correct),
-        })
-    return {
-        "id": a.id,
-        "user": {
-            "id": user.id, "username": user.username, "display_name": user.display_name,
-        },
-        "task": {"id": task.id, "code": task.code, "name": task.name},
-        "status": a.status,
-        "batch_index": a.batch_index,
-        "score": a.score,
-        "total": a.total,
-        "correct": a.correct,
-        "started_at": a.started_at,
-        "updated_at": a.updated_at,
-        "submitted_at": a.submitted_at,
-        "rows": rows,
-    }
+        answer_text = an.answer_text if an else ""
+        source_center, source_file_path = parse_source_note(q.note)
+        rows.append(
+            AdminAttemptDetailRow(
+                question_id=q.id,
+                order_index=q.order_index,
+                batch_index=q.batch_index,
+                batch_position=q.batch_position,
+                image_url=public_url_of(q.image_path),
+                ground_truth=q.ground_truth,
+                answer_text=answer_text,
+                note=an.note if an else "",
+                review_flag=bool(an and an.review_flag),
+                time_spent_seconds=an.time_spent_seconds if an else 0,
+                is_correct=bool(answer_text and answer_text == q.ground_truth),
+                truth_binary=truth_binary_for(q.ground_truth),
+                doctor_malignancy_score=malignancy_score_for(answer_text),
+                source_center=source_center,
+                source_file_path=source_file_path,
+            )
+        )
+    return AdminAttemptDetail(
+        id=a.id,
+        user=AdminAttemptDetailUser(
+            id=user.id,
+            username=user.username,
+            display_name=user.display_name,
+        ),
+        task=AdminAttemptDetailTask(id=task.id, code=task.code, name=task.name),
+        status=a.status,
+        batch_index=a.batch_index,
+        score=a.score,
+        total=a.total,
+        correct=a.correct,
+        started_at=a.started_at,
+        updated_at=a.updated_at,
+        submitted_at=a.submitted_at,
+        metrics=AdminAttemptMetrics(
+            total=metrics.total,
+            answered=metrics.answered,
+            correct=metrics.correct,
+            accuracy=metrics.accuracy,
+            auc=metrics.auc,
+            auc_positive=metrics.auc_positive,
+            auc_negative=metrics.auc_negative,
+        ),
+        rows=rows,
+    )
 
 
 # ---------- exports ----------

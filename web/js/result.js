@@ -38,9 +38,11 @@ async function load() {
   }
 
   const rows = res.rows || [];
-  const answered = rows.filter((r) => r.answer_text).length;
+  const answered = Number.isFinite(Number(res.answered))
+    ? Number(res.answered)
+    : rows.filter((r) => r.answer_text).length;
   const review = rows.filter((r) => r.review_flag).length;
-  const total = rows.length || res.total || 0;
+  const total = Number.isFinite(Number(res.total)) ? Number(res.total) : rows.length;
   const pct = total ? (answered / total) * 100 : 0;
 
   $("task-name").textContent = res.task_name;

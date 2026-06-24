@@ -7,10 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# 系统依赖：Pillow 需要的图像库 + git（部分包构建用）
+# 系统依赖：Pillow 需要的图像库 + curl（启动时按需拉取数据种子包）
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libjpeg62-turbo libpng16-16 libwebp7 \
-        ca-certificates \
+        ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./

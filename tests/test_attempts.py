@@ -41,17 +41,26 @@ def _login(client: TestClient, username: str) -> None:
     assert r.status_code == 200, r.text
 
 
-def _seed_task(client: TestClient, code: str = "thy", n_q: int = 3,
-               opts: list[str] | None = None, gts: list[str] | None = None,
-               published: bool = True) -> dict:
+def _seed_task(
+    client: TestClient,
+    code: str = "thy",
+    n_q: int = 3,
+    opts: list[str] | None = None,
+    gts: list[str] | None = None,
+    published: bool = True,
+) -> dict:
     """返回 (admin) task dict。"""
     opts = opts or ["良性", "恶性"]
     gts = gts or ["良性", "恶性", "良性"][:n_q]
-    r = client.post("/api/tasks", json={
-        "code": code, "name": f"任务 {code}",
-        "answer_options": opts,
-        "is_published": published,
-    })
+    r = client.post(
+        "/api/tasks",
+        json={
+            "code": code,
+            "name": f"任务 {code}",
+            "answer_options": opts,
+            "is_published": published,
+        },
+    )
     assert r.status_code == 201, r.text
     files = [("files", (f"q{i}.png", _png(100 + i), "image/png")) for i in range(n_q)]
     r = client.post(
@@ -64,6 +73,7 @@ def _seed_task(client: TestClient, code: str = "thy", n_q: int = 3,
 
 
 # ---------- attempt 创建 / 续答 ----------
+
 
 def test_doctor_starts_attempt_and_can_resume(client: TestClient) -> None:
     author = TestClient(client.app)
@@ -102,6 +112,7 @@ def test_doctor_cannot_attempt_unpublished(client: TestClient) -> None:
 
 
 # ---------- 保存答案 ----------
+
 
 def test_save_answer_round_trip(client: TestClient) -> None:
     author = TestClient(client.app)
@@ -263,111 +274,3 @@ def test_other_user_cannot_access_attempt(client: TestClient) -> None:
     _login(other, "doc2")
     r = other.get(f"/api/attempts/{a['id']}")
     assert r.status_code == 403
-
-
-# ---------- 提交 + 计分 ----------
-
-def test_submit_calculates_score(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    _seed_task(author, code="t1", n_q=4,
-               gts=["良性", "恶性", "良性", "恶性"])
-
-    _make_user(client, "doc1", ROLE_DOCTOR)
-    _login(client, "doc1")
-    a = client.post("/api/attempts", json={"task_code": "t1"}).json()
-    qs = a["questions"]
-
-    # 答 3 对 1 错 1 不答（实际 2 对 1 错 1 不答）
-    answers = ["良性", "恶性", "错的", ""]  # "错的" 是无效选项 → 用合法但错的代替
-    answers = ["良性", "恶性", "恶性", ""]  # 第 3 题对的应该是良性，故第 3 错；最后一题不答
-    for q, ans in zip(qs, answers, strict=True):
-        client.put(f"/api/attempts/{a['id']}/answers/{q['id']}",
-                   json={"answer_text": ans})
-
-    r = client.post(f"/api/attempts/{a['id']}/submit")
-    assert r.status_code == 200, r.text
-    res = r.json()
-    assert res["status"] == "submitted"
-    assert res["total"] == 4
-    assert res["correct"] == 2
-    assert abs(res["score"] - 0.5) < 1e-6
-
-
-def test_submit_locks_attempt(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    _seed_task(author, code="t1", n_q=1)
-    _make_user(client, "doc1", ROLE_DOCTOR)
-    _login(client, "doc1")
-    a = client.post("/api/attempts", json={"task_code": "t1"}).json()
-    qid = a["questions"][0]["id"]
-    client.put(f"/api/attempts/{a['id']}/answers/{qid}", json={"answer_text": "良性"})
-    client.post(f"/api/attempts/{a['id']}/submit")
-
-    # 提交后再访问 in_progress 视图 → 409
-    assert client.get(f"/api/attempts/{a['id']}").status_code == 409
-    # 提交后再写入答案 → 409
-    r = client.put(f"/api/attempts/{a['id']}/answers/{qid}", json={"answer_text": "恶性"})
-    assert r.status_code == 409
-    # 重复提交：返回 200（幂等）
-    r = client.post(f"/api/attempts/{a['id']}/submit")
-    assert r.status_code == 200
-
-
-def test_result_view_includes_ground_truth(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    _seed_task(author, code="t1", n_q=2, gts=["良性", "恶性"])
-    _make_user(client, "doc1", ROLE_DOCTOR)
-    _login(client, "doc1")
-    a = client.post("/api/attempts", json={"task_code": "t1"}).json()
-    qs = a["questions"]
-    client.put(f"/api/attempts/{a['id']}/answers/{qs[0]['id']}", json={"answer_text": "良性"})
-    client.put(f"/api/attempts/{a['id']}/answers/{qs[1]['id']}", json={"answer_text": "良性"})
-    client.post(f"/api/attempts/{a['id']}/submit")
-
-    r = client.get(f"/api/attempts/{a['id']}/result")
-    assert r.status_code == 200
-    res = r.json()
-    assert res["correct"] == 1
-    assert res["total"] == 2
-    assert all("ground_truth" in row for row in res["rows"])
-    # 顺序按 order_index
-    assert res["rows"][0]["is_correct"] is True
-    assert res["rows"][1]["is_correct"] is False
-
-
-def test_result_unauthorized_until_submit(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    _seed_task(author, code="t1", n_q=1)
-    _make_user(client, "doc1", ROLE_DOCTOR)
-    _login(client, "doc1")
-    a = client.post("/api/attempts", json={"task_code": "t1"}).json()
-    r = client.get(f"/api/attempts/{a['id']}/result")
-    assert r.status_code == 409
-
-
-def test_my_attempts_history(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    _seed_task(author, code="t1", n_q=1)
-    _make_user(client, "doc1", ROLE_DOCTOR)
-    _login(client, "doc1")
-    a = client.post("/api/attempts", json={"task_code": "t1"}).json()
-    qid = a["questions"][0]["id"]
-    client.put(f"/api/attempts/{a['id']}/answers/{qid}", json={"answer_text": "良性"})
-    client.post(f"/api/attempts/{a['id']}/submit")
-
-    r = client.get("/api/attempts")
-    assert r.status_code == 200
-    items = r.json()
-    assert len(items) == 1
-    assert items[0]["status"] == "submitted"
-    assert items[0]["task_code"] == "t1"

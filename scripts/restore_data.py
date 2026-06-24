@@ -136,9 +136,54 @@ def extract_images() -> int:
     return extracted
 
 
+def _expected_image_count() -> int:
+    """Threshold below which we treat the volume as unseeded and fetch the archive."""
+    raw = os.environ.get("SEED_IMAGE_COUNT", "")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 0
+
+
+def fetch_seed_archive() -> bool:
+    """Download the seed tarball from a public URL if the volume looks empty.
+
+    Triggered only when SEED_ARCHIVE_URL is set and the on-volume image count
+    is below SEED_IMAGE_COUNT. Railway CLI can't push files into a volume, so
+    we ship the dataset as a GitHub Release asset and pull it here on cold start.
+    """
+    url = os.environ.get("SEED_ARCHIVE_URL", "").strip()
+    if not url:
+        return False
+
+    img_dir = DATA / "storage" / "images"
+    have = count_files(img_dir)
+    need = _expected_image_count()
+    if need and have >= need:
+        print(f"[restore] Seed not needed ({have} >= {need} images)")
+        return False
+
+    dest = DATA / "seed.tar.gz"
+    print(f"[restore] Fetching seed archive: {url} -> {dest}")
+    # curl: -L follow redirect (release assets 302), --fail surface HTTP errors,
+    # resume-friendly via -C - in case a partial file lingers from a prior boot.
+    rc = os.system(
+        f"curl -L --fail -C - --retry 5 --retry-delay 5 "
+        f"-o {dest} {url}"
+    )
+    if rc != 0 or not dest.exists() or dest.stat().st_size < 1_000_000:
+        print(f"[restore] Seed download failed (rc={rc})")
+        if dest.exists():
+            dest.unlink(missing_ok=True)
+        return False
+    print(f"[restore] Downloaded {dest.stat().st_size} bytes")
+    return True
+
+
 if __name__ == "__main__":
     print("[restore] Starting data restoration...")
     db_ok = restore_db()
+    fetch_seed_archive()
     extract_images()
     if db_ok:
         print("[restore] Database restored. Alembic will detect it's at current revision.")

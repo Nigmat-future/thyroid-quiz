@@ -600,6 +600,58 @@ h2 .chip {
   background: #f9fbf9;
 }
 
+.attempt-detail-row > td {
+  padding: 14px;
+  background: var(--surface);
+}
+
+.attempt-detail {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.attempt-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(96px, 1fr));
+  gap: var(--space-2);
+}
+
+.attempt-metrics div {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+}
+
+.attempt-metrics span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.attempt-metrics strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.attempt-detail-table {
+  min-width: 980px;
+  background: var(--surface-strong);
+}
+
+.attempt-thumb {
+  display: block;
+  width: 64px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #111b19;
+  object-fit: cover;
+}
+
 /* ===== Author task page ===== */
 .upload-zone {
   margin: var(--space-4) 0;
@@ -1443,6 +1495,10 @@ h2 .chip {
 
   .batch-actions {
     justify-content: flex-start;
+  }
+
+  .attempt-metrics {
+    grid-template-columns: repeat(2, minmax(132px, 150px));
   }
 }
 

@@ -1,5 +1,6 @@
 // 平台管理：账号管理 + 判读记录筛选 + 数据导出
 import { apiGet, apiPatch, fetchMe } from "./api.js";
+import { bindAttemptDetailButtons, formatAuc } from "./admin_attempt_detail.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -129,7 +130,7 @@ async function loadAttempts() {
     if (!list.length) { root.innerHTML = `<p class="brand-copy">无结果</p>`; return; }
     root.innerHTML = `
       <table class="history-table">
-        <thead><tr><th>ID</th><th>用户</th><th>研究任务</th><th>状态</th><th>参考一致性</th><th>开始</th><th>提交</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>用户</th><th>研究任务</th><th>状态</th><th>参考一致性</th><th>AUC</th><th>开始</th><th>提交</th><th></th></tr></thead>
         <tbody>${list.map((a) => `
           <tr>
             <td>${a.id}</td>
@@ -137,12 +138,14 @@ async function loadAttempts() {
             <td>${escapeHtml(a.task_name)} <code>${escapeHtml(a.task_code)}</code></td>
             <td><span class="chip ${a.status === "submitted" ? "chip-success" : "chip-muted"}">${STATUS_LABELS[a.status] || a.status}</span></td>
             <td>${a.score != null ? `${a.correct}/${a.total} (${(a.score * 100).toFixed(1)}%)` : "-"}</td>
+            <td>${formatAuc(a.auc)}</td>
             <td>${fmt(a.started_at)}</td>
             <td>${fmt(a.submitted_at)}</td>
-            <td><a class="btn" href="/result/${a.id}" target="_blank">查看</a></td>
+            <td><button class="btn" type="button" data-attempt-detail="${a.id}">查看</button></td>
           </tr>
         `).join("")}</tbody>
       </table>`;
+    bindAttemptDetailButtons(root);
   } catch (e) {
     root.innerHTML = `<p class="feedback" data-kind="error">${escapeHtml(e.message)}</p>`;
   }

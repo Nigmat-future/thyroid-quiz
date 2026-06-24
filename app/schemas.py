@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ===== Auth =====
 
+
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=32)
     password: str = Field(min_length=6, max_length=128)
@@ -32,6 +33,7 @@ class UserPublic(BaseModel):
 
 # ===== Admin user mgmt =====
 
+
 class UserAdminUpdate(BaseModel):
     role: str | None = None
     is_active: int | None = None
@@ -40,6 +42,7 @@ class UserAdminUpdate(BaseModel):
 
 
 # ===== Tasks =====
+
 
 class TaskCreate(BaseModel):
     code: str = Field(min_length=2, max_length=64, pattern=r"^[a-z0-9][a-z0-9_-]*$")
@@ -95,6 +98,7 @@ class TaskAdminPublic(TaskPublic):
 
 # ===== Questions =====
 
+
 class QuestionUpdate(BaseModel):
     ground_truth: str | None = None
     order_index: int | None = None
@@ -129,6 +133,7 @@ class QuestionAdminPublic(BaseModel):
 
 
 # ===== Attempts =====
+
 
 class AttemptCreate(BaseModel):
     task_code: str = Field(min_length=1, max_length=64)
@@ -179,21 +184,91 @@ class AttemptResultRow(BaseModel):
     note: str
     review_flag: bool = False
     time_spent_seconds: int = 0
-    ground_truth: str
-    is_correct: bool
 
 
 class AttemptResult(BaseModel):
+    """医生提交后的完成度视图；不含标准答案、对错或正确率。"""
+
     id: int
     task_code: str
     task_name: str
     status: str
     batch_index: int = 0
-    score: float
     total: int
-    correct: int
+    answered: int
     submitted_at: datetime
     rows: list[AttemptResultRow]
+
+
+class AttemptHistoryItem(BaseModel):
+    """医生自己的答题历史；只展示完成进度。"""
+
+    id: int
+    task_code: str
+    task_name: str
+    status: str
+    batch_index: int = 0
+    batch_total: int = 1
+    answered: int
+    total: int
+    started_at: datetime
+    submitted_at: datetime | None
+
+
+class AdminAttemptMetrics(BaseModel):
+    total: int
+    answered: int
+    correct: int
+    accuracy: float | None
+    auc: float | None
+    auc_positive: int
+    auc_negative: int
+
+
+class AdminAttemptDetailUser(BaseModel):
+    id: int
+    username: str
+    display_name: str | None
+
+
+class AdminAttemptDetailTask(BaseModel):
+    id: int
+    code: str
+    name: str
+
+
+class AdminAttemptDetailRow(BaseModel):
+    question_id: int
+    order_index: int
+    batch_index: int = 0
+    batch_position: int = 0
+    image_url: str
+    ground_truth: str
+    answer_text: str
+    note: str
+    review_flag: bool
+    time_spent_seconds: int
+    is_correct: bool
+    truth_binary: int | None
+    doctor_malignancy_score: int | None
+    source_center: str
+    source_file_path: str
+
+
+class AdminAttemptDetail(BaseModel):
+    id: int
+    user: AdminAttemptDetailUser
+    task: AdminAttemptDetailTask
+    status: str
+    batch_index: int = 0
+    score: float | None
+    total: int | None
+    correct: int | None
+    started_at: datetime
+    updated_at: datetime
+    submitted_at: datetime | None
+    metrics: AdminAttemptMetrics
+    rows: list[AdminAttemptDetailRow]
 
 
 class AttemptSummary(BaseModel):
@@ -213,5 +288,7 @@ class AttemptSummary(BaseModel):
     score: float | None
     total: int | None
     correct: int | None
+    answered: int | None = None
+    auc: float | None = None
     started_at: datetime
     submitted_at: datetime | None
