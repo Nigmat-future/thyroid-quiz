@@ -637,6 +637,80 @@ h2 .chip {
   line-height: 1.25;
 }
 
+.auc-curve-card {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+}
+
+.auc-curve-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.auc-curve-head span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.auc-curve {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  color: var(--primary);
+  overflow: visible;
+}
+
+.auc-curve line {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.auc-grid line {
+  stroke: var(--line);
+  stroke-dasharray: 4 5;
+}
+
+.auc-grid text,
+.auc-axis-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.auc-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-auc-line 700ms ease-out forwards;
+}
+
+.auc-point {
+  fill: var(--surface-strong);
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.auc-empty {
+  display: grid;
+  min-height: 110px;
+  place-items: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .attempt-detail-table {
   min-width: 980px;
   background: var(--surface-strong);
@@ -1510,5 +1584,11 @@ h2 .chip {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+@keyframes draw-auc-line {
+  to {
+    stroke-dashoffset: 0;
   }
 }
