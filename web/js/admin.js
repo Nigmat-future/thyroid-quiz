@@ -14,6 +14,14 @@ function escapeHtml(s) {
 }
 
 function fmt(d) { return d ? new Date(d).toLocaleString("zh-CN", { hour12: false }) : "-"; }
+function formatPercent(value) { return typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "-"; }
+function renderUserAgreement(user) {
+  return user.total ? `${user.correct}/${user.total} (${formatPercent(user.accuracy)})` : "-";
+}
+function renderUserAuc(user) {
+  if (typeof user.auc !== "number") return "-";
+  return `${formatAuc(user.auc)}<span class="history-subtext">样本 ${user.auc_positive}/${user.auc_negative}</span>`;
+}
 
 let me = null;
 
@@ -50,7 +58,7 @@ async function loadUsers() {
     const list = await apiGet("/api/admin/users");
     root.innerHTML = `
       <table class="history-table">
-        <thead><tr><th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th><th>注册</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th><th>已提交</th><th>整体一致性</th><th>整体AUC</th><th>注册</th><th></th></tr></thead>
         <tbody>${list.map((u) => `
           <tr>
             <td>${u.id}</td>
@@ -58,6 +66,9 @@ async function loadUsers() {
             <td>${escapeHtml(u.display_name || "-")}</td>
             <td><span class="chip">${ROLE_LABELS[u.role] || u.role}</span></td>
             <td><span class="chip ${u.is_active ? "chip-success" : "chip-muted"}">${u.is_active ? "启用" : "停用"}</span></td>
+            <td>${u.submitted_attempts || 0}</td>
+            <td>${renderUserAgreement(u)}</td>
+            <td>${renderUserAuc(u)}</td>
             <td>${fmt(u.created_at)}</td>
             <td><button class="btn" data-edit="${u.id}">编辑</button></td>
           </tr>

@@ -31,6 +31,17 @@ class UserPublic(BaseModel):
     created_at: datetime
 
 
+class AdminUserSummary(UserPublic):
+    submitted_attempts: int = 0
+    total: int = 0
+    answered: int = 0
+    correct: int = 0
+    accuracy: float | None = None
+    auc: float | None = None
+    auc_positive: int = 0
+    auc_negative: int = 0
+
+
 # ===== Admin user mgmt =====
 
 

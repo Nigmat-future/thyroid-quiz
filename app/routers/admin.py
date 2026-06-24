@@ -26,11 +26,13 @@ from app.schemas import (
     AdminAttemptDetailTask,
     AdminAttemptDetailUser,
     AdminAttemptMetrics,
+    AdminUserSummary,
     AttemptSummary,
     UserAdminUpdate,
     UserPublic,
 )
 from app.security import hash_password
+from app.services.admin_user_metrics import summarize_users_metrics
 from app.services.attempt_metrics import (
     AnswerMetricRow,
     is_answer_correct,
@@ -49,9 +51,29 @@ admin_router = APIRouter(
 
 # ---------- users ----------
 
-@admin_router.get("/users", response_model=list[UserPublic])
-def list_users(db: Session = Depends(get_db)) -> list[User]:
-    return list(db.scalars(select(User).order_by(User.id.asc())).all())
+@admin_router.get("/users", response_model=list[AdminUserSummary])
+def list_users(db: Session = Depends(get_db)) -> list[AdminUserSummary]:
+    users = list(db.scalars(select(User).order_by(User.id.asc())).all())
+    metrics_by_user_id = summarize_users_metrics(db, users)
+    return [
+        AdminUserSummary(
+            id=user.id,
+            username=user.username,
+            display_name=user.display_name,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            submitted_attempts=metrics_by_user_id[user.id].submitted_attempts,
+            total=metrics_by_user_id[user.id].total,
+            answered=metrics_by_user_id[user.id].answered,
+            correct=metrics_by_user_id[user.id].correct,
+            accuracy=metrics_by_user_id[user.id].accuracy,
+            auc=metrics_by_user_id[user.id].auc,
+            auc_positive=metrics_by_user_id[user.id].auc_positive,
+            auc_negative=metrics_by_user_id[user.id].auc_negative,
+        )
+        for user in users
+    ]
 
 
 @admin_router.patch("/users/{user_id}", response_model=UserPublic)
