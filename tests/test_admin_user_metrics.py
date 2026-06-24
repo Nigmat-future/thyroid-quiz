@@ -129,7 +129,7 @@ def test_admin_users_include_overall_auc_per_user(client: TestClient) -> None:
     assert doctor_metrics["answered"] == 6
     assert doctor_metrics["correct"] == 4
     assert doctor_metrics["accuracy"] == 4 / 6
-    assert doctor_metrics["auc"] == 8 / 9
+    assert doctor_metrics["auc"] == 17 / 18
     assert doctor_metrics["auc_positive"] == 3
     assert doctor_metrics["auc_negative"] == 3
 

@@ -77,7 +77,7 @@ def test_fna_auc_scores_follow_configured_risk_values() -> None:
         malignancy_score_for("确定是癌"),
     ]
 
-    assert scores == [0.0, 0.5, 0.5, 0.7, 1.0]
+    assert scores == [0.0, 0.3, 0.5, 0.7, 1.0]
 
 
 def test_submit_persists_fna_binary_direction_correctness(client: TestClient) -> None:
@@ -191,7 +191,7 @@ def test_csv_answers_export_uses_fna_binary_scores(client: TestClient) -> None:
 
     rows = list(csv.DictReader(io.StringIO(response.content.decode("utf-8-sig"))))
     assert {row["truth_binary"] for row in rows} == {"0", "1"}
-    assert {row["doctor_malignancy_score"] for row in rows} == {"0.5", "0.7"}
+    assert {row["doctor_malignancy_score"] for row in rows} == {"0.3", "0.7"}
     assert {row["is_correct"] for row in rows} == {"1"}
     assert {row["source_center"] for row in rows} == {"重庆", "福建"}
     assert {row["time_spent_seconds"] for row in rows} == {"9", "14"}

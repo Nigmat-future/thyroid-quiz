@@ -127,7 +127,7 @@ def test_admin_attempts_include_auc_and_detail_metrics(client: TestClient) -> No
     assert {row["truth_binary"] for row in detail["rows"]} == {0, 1}
     assert {row["doctor_malignancy_score"] for row in detail["rows"]} == {
         0.0,
-        0.5,
+        0.3,
         0.7,
         1.0,
     }

@@ -173,7 +173,7 @@ function renderAttemptDetail(detail) {
         <thead>
           <tr>
             <th>题号</th><th>图像</th><th>用户答案</th><th>标准答案</th>
-            <th>结果</th><th>恶性评分</th><th>真值</th><th>来源</th><th>用时</th>
+            <th>结果</th><th>AUC风险分</th><th>真值(0良/1恶)</th><th>来源</th><th>用时</th>
           </tr>
         </thead>
         <tbody>${renderDetailRows(detail.rows)}</tbody>
