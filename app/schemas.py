@@ -250,7 +250,7 @@ class AdminAttemptDetailRow(BaseModel):
     time_spent_seconds: int
     is_correct: bool
     truth_binary: int | None
-    doctor_malignancy_score: int | None
+    doctor_malignancy_score: float | None
     source_center: str
     source_file_path: str
 

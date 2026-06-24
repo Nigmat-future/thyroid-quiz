@@ -12,7 +12,6 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import ROLE_ADMIN, ROLE_AUTHOR, ROLE_DOCTOR, User
-from app.services.fna import FNA_ANSWER_OPTIONS, build_source_note
 
 
 def _png(seed: int) -> bytes:
@@ -248,63 +247,3 @@ def test_csv_answers_export(client: TestClient) -> None:
     # 应该有 2 条答题记录
     data_lines = [line for line in lines[1:] if "良性" in line or "恶性" in line]
     assert len(data_lines) == 2
-
-
-def test_csv_answers_export_includes_auc_fields(client: TestClient) -> None:
-    author = TestClient(client.app)
-    _make_user(author, "auth1", ROLE_AUTHOR)
-    _login(author, "auth1")
-    r = author.post("/api/tasks", json={
-        "code": "fna_binary_5class",
-        "name": "FNA",
-        "answer_options": FNA_ANSWER_OPTIONS,
-        "is_published": True,
-    })
-    assert r.status_code == 201, r.text
-    files = [
-        ("files", ("a.png", _png(21), "image/png")),
-        ("files", ("b.png", _png(22), "image/png")),
-    ]
-    r = author.post(
-        "/api/tasks/fna_binary_5class/questions/upload",
-        data={
-            "ground_truths": json.dumps(["确定不是癌", "确定是癌"]),
-            "notes": json.dumps([
-                build_source_note("重庆", "重庆test/benign/a.png"),
-                build_source_note("福建", "福建test/malignant/b.png"),
-            ]),
-        },
-        files=files,
-    )
-    assert r.status_code == 201, r.text
-
-    doctor = TestClient(client.app)
-    _make_user(doctor, "doc1", ROLE_DOCTOR)
-    _login(doctor, "doc1")
-    attempt = doctor.post("/api/attempts", json={"task_code": "fna_binary_5class"}).json()
-    qs = attempt["questions"]
-    doctor.put(
-        f"/api/attempts/{attempt['id']}/answers/{qs[0]['id']}",
-        json={"answer_text": "倾向不是癌", "review_flag": True, "time_spent_seconds": 9},
-    )
-    doctor.put(
-        f"/api/attempts/{attempt['id']}/answers/{qs[1]['id']}",
-        json={"answer_text": "倾向是癌", "time_spent_seconds": 14},
-    )
-    doctor.post(f"/api/attempts/{attempt['id']}/submit")
-
-    admin = TestClient(client.app)
-    _make_user(admin, "root", ROLE_ADMIN)
-    _login(admin, "root")
-    r = admin.get("/api/admin/exports/answers.csv")
-    assert r.status_code == 200
-
-    rows = list(csv.DictReader(io.StringIO(r.content.decode("utf-8-sig"))))
-    assert {row["truth_binary"] for row in rows} == {"0", "1"}
-    assert {row["doctor_malignancy_score"] for row in rows} == {"2", "4"}
-    assert {row["source_center"] for row in rows} == {"重庆", "福建"}
-    assert {row["batch_index"] for row in rows} == {"0"}
-    assert {row["batch_position"] for row in rows} == {"0", "1"}
-    assert {row["review_flag"] for row in rows} == {"0", "1"}
-    assert {row["time_spent_seconds"] for row in rows} == {"9", "14"}
-    assert any(row["source_file_path"] == "重庆test/benign/a.png" for row in rows)

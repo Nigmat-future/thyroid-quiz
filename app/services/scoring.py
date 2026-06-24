@@ -14,6 +14,7 @@ from app.models import (
     Attempt,
     Question,
 )
+from app.services.fna import is_answer_correct
 
 
 def submit_attempt(db: Session, attempt: Attempt) -> Attempt:
@@ -44,7 +45,7 @@ def submit_attempt(db: Session, attempt: Attempt) -> Attempt:
             # 题目被软删了；不计入正确数也不报错
             a.is_correct = 0
             continue
-        a.is_correct = 1 if a.answer_text and a.answer_text == q.ground_truth else 0
+        a.is_correct = 1 if is_answer_correct(a.answer_text, q.ground_truth) else 0
         if a.is_correct:
             correct += 1
 

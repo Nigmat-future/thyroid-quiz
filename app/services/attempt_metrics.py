@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from app.services.fna import MALIGNANCY_SCORE_BY_ANSWER, TRUTH_BINARY_BY_GROUND_TRUTH
+from app.services.fna import is_answer_correct, malignancy_score_for, truth_binary_for
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +17,7 @@ class AnswerMetricRow:
 @dataclass(frozen=True, slots=True)
 class AucPoint:
     truth_binary: int
-    malignancy_score: int
+    malignancy_score: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,18 +31,8 @@ class AttemptMetrics:
     auc_negative: int
 
 
-def truth_binary_for(ground_truth: str) -> int | None:
-    """Return the binary truth used by FNA ROC/AUC exports."""
-    return TRUTH_BINARY_BY_GROUND_TRUTH.get(ground_truth)
-
-
-def malignancy_score_for(answer_text: str) -> int | None:
-    """Return the ordinal malignancy score used by FNA ROC/AUC exports."""
-    return MALIGNANCY_SCORE_BY_ANSWER.get(answer_text)
-
-
 def calculate_auc(points: Sequence[AucPoint]) -> float | None:
-    """Calculate AUC from binary truth and ordinal malignancy scores."""
+    """Calculate AUC from binary truth and configured malignancy risk scores."""
     positives = [point.malignancy_score for point in points if point.truth_binary == 1]
     negatives = [point.malignancy_score for point in points if point.truth_binary == 0]
     if not positives or not negatives:
@@ -60,12 +50,10 @@ def calculate_auc(points: Sequence[AucPoint]) -> float | None:
 
 
 def summarize_attempt_metrics(rows: Sequence[AnswerMetricRow]) -> AttemptMetrics:
-    """Summarize exact-match accuracy and FNA AUC inputs for an attempt."""
+    """Summarize binary-direction accuracy and FNA AUC inputs for an attempt."""
     total = len(rows)
     answered = sum(1 for row in rows if row.answer_text)
-    correct = sum(
-        1 for row in rows if row.answer_text and row.answer_text == row.ground_truth
-    )
+    correct = sum(1 for row in rows if is_answer_correct(row.answer_text, row.ground_truth))
     auc_points = [
         AucPoint(truth_binary=truth_binary, malignancy_score=malignancy_score)
         for row in rows

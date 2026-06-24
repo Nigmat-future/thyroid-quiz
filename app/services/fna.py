@@ -32,13 +32,40 @@ TRUTH_BINARY_BY_GROUND_TRUTH = {
     ANSWER_CERTAIN_MALIGNANT: 1,
 }
 
-MALIGNANCY_SCORE_BY_ANSWER = {
-    ANSWER_CERTAIN_BENIGN: 1,
-    ANSWER_LIKELY_BENIGN: 2,
-    ANSWER_UNCERTAIN: 3,
-    ANSWER_LIKELY_MALIGNANT: 4,
-    ANSWER_CERTAIN_MALIGNANT: 5,
+CORRECT_ANSWERS_BY_GROUND_TRUTH = {
+    ANSWER_CERTAIN_BENIGN: frozenset((ANSWER_CERTAIN_BENIGN, ANSWER_LIKELY_BENIGN)),
+    ANSWER_CERTAIN_MALIGNANT: frozenset(
+        (ANSWER_LIKELY_MALIGNANT, ANSWER_CERTAIN_MALIGNANT)
+    ),
 }
+
+MALIGNANCY_SCORE_BY_ANSWER = {
+    ANSWER_CERTAIN_BENIGN: 0.0,
+    ANSWER_LIKELY_BENIGN: 0.5,
+    ANSWER_UNCERTAIN: 0.5,
+    ANSWER_LIKELY_MALIGNANT: 0.7,
+    ANSWER_CERTAIN_MALIGNANT: 1.0,
+}
+
+
+def truth_binary_for(ground_truth: str) -> int | None:
+    """返回 FNA 真值的二分类标签；非 FNA 标签返回 None。"""
+    return TRUTH_BINARY_BY_GROUND_TRUTH.get(ground_truth)
+
+
+def malignancy_score_for(answer_text: str) -> float | None:
+    """返回医生答案对应的恶性风险分值；非 FNA 答案返回 None。"""
+    return MALIGNANCY_SCORE_BY_ANSWER.get(answer_text)
+
+
+def is_answer_correct(answer_text: str, ground_truth: str) -> bool:
+    """FNA 按良恶性方向判对；普通任务保留原来的精确匹配。"""
+    if not answer_text:
+        return False
+    correct_answers = CORRECT_ANSWERS_BY_GROUND_TRUTH.get(ground_truth)
+    if correct_answers is None:
+        return answer_text == ground_truth
+    return answer_text in correct_answers
 
 
 def build_source_note(source_center: str, source_file_path: str) -> str:

@@ -106,8 +106,9 @@ def test_admin_attempts_include_auc_and_detail_metrics(client: TestClient) -> No
     list_response = admin.get("/api/admin/attempts")
     assert list_response.status_code == 200, list_response.text
     summary = list_response.json()[0]
-    assert summary["correct"] == 2
+    assert summary["correct"] == 4
     assert summary["total"] == 4
+    assert summary["score"] == 1.0
     assert summary["auc"] == 1.0
 
     detail_response = admin.get(f"/api/admin/attempts/{attempt['id']}")
@@ -116,13 +117,18 @@ def test_admin_attempts_include_auc_and_detail_metrics(client: TestClient) -> No
     assert detail["metrics"] == {
         "total": 4,
         "answered": 4,
-        "correct": 2,
-        "accuracy": 0.5,
+        "correct": 4,
+        "accuracy": 1.0,
         "auc": 1.0,
         "auc_positive": 2,
         "auc_negative": 2,
     }
     assert len(detail["rows"]) == 4
     assert {row["truth_binary"] for row in detail["rows"]} == {0, 1}
-    assert {row["doctor_malignancy_score"] for row in detail["rows"]} == {1, 2, 4, 5}
+    assert {row["doctor_malignancy_score"] for row in detail["rows"]} == {
+        0.0,
+        0.5,
+        0.7,
+        1.0,
+    }
     assert {row["source_center"] for row in detail["rows"]} == {"重庆", "福建"}

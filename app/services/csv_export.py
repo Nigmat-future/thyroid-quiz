@@ -10,10 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Attempt, Question, Task, User
+from app.services.attempt_metrics import AnswerMetricRow, summarize_attempt_metrics
 from app.services.fna import (
-    MALIGNANCY_SCORE_BY_ANSWER,
-    TRUTH_BINARY_BY_GROUND_TRUTH,
+    is_answer_correct,
+    malignancy_score_for,
     parse_source_note,
+    truth_binary_for,
 )
 
 # UTF-8 with BOM 让 Excel 直接打开不乱码
@@ -22,6 +24,27 @@ _BOM = "﻿"
 
 def _writer(buf: io.StringIO) -> csv.writer:
     return csv.writer(buf, dialect="excel")
+
+
+def _metric_rows_for_attempt(db: Session, attempt: Attempt) -> list[AnswerMetricRow]:
+    questions = db.scalars(
+        select(Question)
+        .where(
+            Question.task_id == attempt.task_id,
+            Question.batch_index == attempt.batch_index,
+            Question.is_deleted == 0,
+        )
+        .order_by(Question.batch_position, Question.order_index, Question.id)
+    ).all()
+    answers = db.scalars(select(Answer).where(Answer.attempt_id == attempt.id)).all()
+    answers_by_question = {answer.question_id: answer.answer_text for answer in answers}
+    return [
+        AnswerMetricRow(
+            answer_text=answers_by_question.get(question.id, ""),
+            ground_truth=question.ground_truth,
+        )
+        for question in questions
+    ]
 
 
 def stream_attempts_csv(db: Session) -> Iterator[bytes]:
@@ -48,13 +71,14 @@ def stream_attempts_csv(db: Session) -> Iterator[bytes]:
     ).all()
 
     for a, u, t in rows:
+        metrics = summarize_attempt_metrics(_metric_rows_for_attempt(db, a))
         w.writerow([
             a.id, u.id, u.username, u.display_name or "",
             t.code, t.name, a.status,
             a.batch_index,
-            a.total if a.total is not None else "",
-            a.correct if a.correct is not None else "",
-            f"{a.score:.4f}" if a.score is not None else "",
+            metrics.total,
+            metrics.correct,
+            f"{metrics.accuracy:.4f}" if metrics.accuracy is not None else "",
             a.started_at.isoformat(sep=" ", timespec="seconds") if a.started_at else "",
             a.submitted_at.isoformat(sep=" ", timespec="seconds") if a.submitted_at else "",
         ])
@@ -94,14 +118,14 @@ def stream_answers_csv(db: Session) -> Iterator[bytes]:
 
     for ans, a, u, t, q in rows:
         source_center, source_file_path = parse_source_note(q.note)
-        truth_binary = TRUTH_BINARY_BY_GROUND_TRUTH.get(q.ground_truth)
-        malignancy_score = MALIGNANCY_SCORE_BY_ANSWER.get(ans.answer_text)
+        truth_binary = truth_binary_for(q.ground_truth)
+        malignancy_score = malignancy_score_for(ans.answer_text)
         w.writerow([
             a.id, u.username, u.display_name or "",
             t.code, t.name,
             q.id, q.order_index, q.batch_index, q.batch_position,
             ans.answer_text, q.ground_truth,
-            1 if ans.is_correct else 0,
+            1 if is_answer_correct(ans.answer_text, q.ground_truth) else 0,
             truth_binary if truth_binary is not None else "",
             malignancy_score if malignancy_score is not None else "",
             1 if ans.review_flag else 0,
