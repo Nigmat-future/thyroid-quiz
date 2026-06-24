@@ -101,6 +101,22 @@ def _submit_attempt(
     assert response.status_code == 200, response.text
 
 
+def _save_in_progress_answer(
+    doctor: TestClient,
+    batch_index: int,
+    answer_text: str,
+) -> None:
+    attempt = doctor.post(
+        "/api/attempts",
+        json={"task_code": "fna_binary_5class", "batch_index": batch_index},
+    ).json()
+    response = doctor.put(
+        f"/api/attempts/{attempt['id']}/answers/{attempt['questions'][0]['id']}",
+        json={"answer_text": answer_text},
+    )
+    assert response.status_code == 200, response.text
+
+
 def test_admin_users_include_overall_auc_per_user(client: TestClient) -> None:
     author = TestClient(client.app)
     _make_user(author, "author1", ROLE_AUTHOR)
@@ -114,6 +130,7 @@ def test_admin_users_include_overall_auc_per_user(client: TestClient) -> None:
     _login(doctor, "doctor1")
     _submit_attempt(doctor, 0, ["倾向不是癌", "确定不是癌", "倾向是癌", "不确定"])
     _submit_attempt(doctor, 1, ["不确定", "确定是癌"])
+    _save_in_progress_answer(doctor, 0, "确定不是癌")
 
     admin = TestClient(client.app)
     _make_user(admin, "root", ROLE_ADMIN)
@@ -132,9 +149,18 @@ def test_admin_users_include_overall_auc_per_user(client: TestClient) -> None:
     assert doctor_metrics["auc"] == 17 / 18
     assert doctor_metrics["auc_positive"] == 3
     assert doctor_metrics["auc_negative"] == 3
+    assert doctor_metrics["submitted_answered"] == 6
+    assert doctor_metrics["in_progress_answered"] == 1
+    assert doctor_metrics["uncertain"] == 2
+    assert doctor_metrics["ppv"] == 1.0
+    assert doctor_metrics["npv"] == 1.0
+    assert doctor_metrics["sensitivity"] == 1.0
+    assert doctor_metrics["specificity"] == 1.0
 
     admin_metrics = users["root"]
     assert admin_metrics["submitted_attempts"] == 0
     assert admin_metrics["total"] == 0
+    assert admin_metrics["submitted_answered"] == 0
+    assert admin_metrics["in_progress_answered"] == 0
     assert admin_metrics["accuracy"] is None
     assert admin_metrics["auc"] is None

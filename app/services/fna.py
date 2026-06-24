@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 FNA_TASK_CODE = "fna_binary_5class"
 FNA_TASK_NAME = "甲状腺FNA二分类五档判断"
@@ -32,6 +32,13 @@ TRUTH_BINARY_BY_GROUND_TRUTH = {
     ANSWER_CERTAIN_MALIGNANT: 1,
 }
 
+PREDICTED_BINARY_BY_ANSWER = {
+    ANSWER_CERTAIN_BENIGN: 0,
+    ANSWER_LIKELY_BENIGN: 0,
+    ANSWER_LIKELY_MALIGNANT: 1,
+    ANSWER_CERTAIN_MALIGNANT: 1,
+}
+
 CORRECT_ANSWERS_BY_GROUND_TRUTH = {
     ANSWER_CERTAIN_BENIGN: frozenset((ANSWER_CERTAIN_BENIGN, ANSWER_LIKELY_BENIGN)),
     ANSWER_CERTAIN_MALIGNANT: frozenset(
@@ -47,15 +54,27 @@ MALIGNANCY_SCORE_BY_ANSWER = {
     ANSWER_CERTAIN_MALIGNANT: 1.0,
 }
 
+BinaryLabel: TypeAlias = Literal[0, 1]
 
-def truth_binary_for(ground_truth: str) -> int | None:
+
+def truth_binary_for(ground_truth: str) -> BinaryLabel | None:
     """返回 FNA 真值的二分类标签；非 FNA 标签返回 None。"""
     return TRUTH_BINARY_BY_GROUND_TRUTH.get(ground_truth)
+
+
+def predicted_binary_for(answer_text: str) -> BinaryLabel | None:
+    """返回医生回答对应的良恶性方向；不确定或非 FNA 回答返回 None。"""
+    return PREDICTED_BINARY_BY_ANSWER.get(answer_text)
 
 
 def malignancy_score_for(answer_text: str) -> float | None:
     """返回医生答案对应的恶性风险分值；非 FNA 答案返回 None。"""
     return MALIGNANCY_SCORE_BY_ANSWER.get(answer_text)
+
+
+def is_uncertain_answer(answer_text: str) -> bool:
+    """返回当前回答是否为 FNA 的“不确定”选项。"""
+    return answer_text == ANSWER_UNCERTAIN
 
 
 def is_answer_correct(answer_text: str, ground_truth: str) -> bool:

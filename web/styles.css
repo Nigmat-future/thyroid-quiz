@@ -565,6 +565,26 @@ h2 .chip {
   font-size: 12px;
 }
 
+.metric-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.metric-stack div {
+  display: grid;
+  gap: 2px;
+}
+
+.metric-stack span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.metric-stack strong {
+  font-size: 14px;
+  font-weight: 640;
+}
+
 /* ===== Tables ===== */
 #history-root,
 #users-root,
@@ -1279,6 +1299,21 @@ h2 .chip {
 .filter-grid .actions {
   display: flex;
   gap: var(--space-2);
+}
+
+.summary-block {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.summary-head {
+  margin-bottom: 10px;
+}
+
+.summary-table {
+  min-width: 980px;
 }
 
 .modal {

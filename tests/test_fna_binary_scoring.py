@@ -80,6 +80,28 @@ def test_fna_auc_scores_follow_configured_risk_values() -> None:
     assert scores == [0.0, 0.3, 0.5, 0.7, 1.0]
 
 
+def test_fna_diagnostic_rates_exclude_uncertain_and_unanswered_cases() -> None:
+    rows = [
+        AnswerMetricRow(answer_text="确定不是癌", ground_truth="确定不是癌"),
+        AnswerMetricRow(answer_text="确定是癌", ground_truth="确定是癌"),
+        AnswerMetricRow(answer_text="不确定", ground_truth="确定是癌"),
+        AnswerMetricRow(answer_text="", ground_truth="确定不是癌"),
+        AnswerMetricRow(answer_text="倾向不是癌", ground_truth="确定是癌"),
+        AnswerMetricRow(answer_text="倾向是癌", ground_truth="确定不是癌"),
+    ]
+
+    metrics = summarize_attempt_metrics(rows)
+
+    assert metrics.answered == 5
+    assert metrics.correct == 2
+    assert metrics.accuracy == 2 / 5
+    assert metrics.uncertain == 1
+    assert metrics.ppv == 0.5
+    assert metrics.npv == 0.5
+    assert metrics.sensitivity == 0.5
+    assert metrics.specificity == 0.5
+
+
 def test_submit_persists_fna_binary_direction_correctness(client: TestClient) -> None:
     author = TestClient(client.app)
     _make_user(author, "author1", ROLE_AUTHOR)
