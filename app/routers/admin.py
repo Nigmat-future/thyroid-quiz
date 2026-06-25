@@ -29,6 +29,11 @@ def list_users(db: Session = Depends(get_db)) -> list[AdminUserSummary]:
             id=user.id,
             username=user.username,
             display_name=user.display_name,
+            work_hospital=user.work_hospital,
+            physician_title=user.physician_title,
+            career_stage=user.career_stage,
+            license_years=user.license_years,
+            profile_complete=user.profile_complete,
             role=user.role,
             is_active=user.is_active,
             created_at=user.created_at,
@@ -81,6 +86,18 @@ def update_user(
 
     if payload.display_name is not None:
         user.display_name = payload.display_name or None
+
+    if payload.work_hospital is not None:
+        user.work_hospital = payload.work_hospital or None
+
+    if payload.physician_title is not None:
+        user.physician_title = payload.physician_title or None
+
+    if payload.career_stage is not None:
+        user.career_stage = payload.career_stage or None
+
+    if payload.license_years is not None:
+        user.license_years = payload.license_years
 
     db.commit()
     db.refresh(user)

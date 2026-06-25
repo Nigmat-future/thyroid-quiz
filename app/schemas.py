@@ -6,13 +6,44 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.models import ALL_CAREER_STAGES, CAREER_GRADUATE, CAREER_PRACTITIONER
+
 # ===== Auth =====
 
 
-class UserCreate(BaseModel):
+def _clean_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+class UserProfileFields(BaseModel):
+    display_name: str = Field(min_length=1, max_length=128)
+    work_hospital: str = Field(min_length=1, max_length=256)
+    physician_title: str = Field(min_length=1, max_length=64)
+    career_stage: str = Field(min_length=1, max_length=32)
+    license_years: int = Field(ge=0, le=80)
+
+    @field_validator("display_name", "work_hospital", "physician_title")
+    @classmethod
+    def _strip_required_text(cls, v: str) -> str:
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("不可为空")
+        return cleaned
+
+    @field_validator("career_stage")
+    @classmethod
+    def _validate_career_stage(cls, v: str) -> str:
+        if v not in ALL_CAREER_STAGES:
+            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+        return v
+
+
+class UserCreate(UserProfileFields):
     username: str = Field(min_length=3, max_length=32)
     password: str = Field(min_length=6, max_length=128)
-    display_name: str | None = Field(default=None, max_length=128)
 
 
 class UserLogin(BaseModel):
@@ -26,9 +57,36 @@ class UserPublic(BaseModel):
     id: int
     username: str
     display_name: str | None
+    work_hospital: str | None
+    physician_title: str | None
+    career_stage: str | None
+    license_years: int | None
+    profile_complete: bool
     role: str
     is_active: int
     created_at: datetime
+
+
+class UserProfileUpdate(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=128)
+    work_hospital: str | None = Field(default=None, min_length=1, max_length=256)
+    physician_title: str | None = Field(default=None, min_length=1, max_length=64)
+    career_stage: str | None = Field(default=None, min_length=1, max_length=32)
+    license_years: int | None = Field(default=None, ge=0, le=80)
+
+    @field_validator("display_name", "work_hospital", "physician_title")
+    @classmethod
+    def _strip_optional_text(cls, v: str | None) -> str | None:
+        return _clean_text(v)
+
+    @field_validator("career_stage")
+    @classmethod
+    def _validate_optional_career_stage(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if v not in ALL_CAREER_STAGES:
+            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+        return v
 
 
 class AdminUserSummary(UserPublic):
@@ -50,6 +108,24 @@ class UserAdminUpdate(BaseModel):
     is_active: int | None = None
     new_password: str | None = Field(default=None, min_length=6, max_length=128)
     display_name: str | None = Field(default=None, max_length=128)
+    work_hospital: str | None = Field(default=None, max_length=256)
+    physician_title: str | None = Field(default=None, max_length=64)
+    career_stage: str | None = Field(default=None, max_length=32)
+    license_years: int | None = Field(default=None, ge=0, le=80)
+
+    @field_validator("display_name", "work_hospital", "physician_title")
+    @classmethod
+    def _strip_admin_text(cls, v: str | None) -> str | None:
+        return _clean_text(v)
+
+    @field_validator("career_stage")
+    @classmethod
+    def _validate_admin_career_stage(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if v not in ALL_CAREER_STAGES:
+            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+        return v
 
 
 # ===== Tasks =====

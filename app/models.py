@@ -25,6 +25,11 @@ ROLE_AUTHOR = "author"
 ROLE_DOCTOR = "doctor"
 ALL_ROLES = (ROLE_ADMIN, ROLE_AUTHOR, ROLE_DOCTOR)
 
+# 职业阶段
+CAREER_GRADUATE = "graduate"
+CAREER_PRACTITIONER = "practitioner"
+ALL_CAREER_STAGES = (CAREER_GRADUATE, CAREER_PRACTITIONER)
+
 # Attempt 状态常量
 STATUS_IN_PROGRESS = "in_progress"
 STATUS_SUBMITTED = "submitted"
@@ -37,11 +42,28 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    work_hospital: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    career_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    license_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    physician_title: Mapped[str | None] = mapped_column(String(64), nullable=True)
     role: Mapped[str] = mapped_column(String(16), nullable=False, default=ROLE_DOCTOR)
     is_active: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
+
+    @property
+    def profile_complete(self) -> bool:
+        return bool(
+            self.display_name
+            and self.display_name.strip()
+            and self.work_hospital
+            and self.work_hospital.strip()
+            and self.career_stage in ALL_CAREER_STAGES
+            and self.license_years is not None
+            and self.physician_title
+            and self.physician_title.strip()
+        )
 
     def __repr__(self) -> str:
         return f"<User {self.id} {self.username} role={self.role}>"

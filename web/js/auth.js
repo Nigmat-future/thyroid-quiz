@@ -18,6 +18,25 @@ function disable(form, on) {
   });
 }
 
+function readProfileFields(prefix = "") {
+  const display_name = $(`${prefix}display_name`).value.trim();
+  const work_hospital = $(`${prefix}work_hospital`).value.trim();
+  const physician_title = $(`${prefix}physician_title`).value.trim();
+  const career_stage = $(`${prefix}career_stage`).value;
+  const licenseRaw = $(`${prefix}license_years`).value.trim();
+  const license_years = licenseRaw === "" ? null : Number(licenseRaw);
+
+  if (!display_name) return { error: "请填写真名" };
+  if (!work_hospital) return { error: "请填写工作医院" };
+  if (!physician_title) return { error: "请填写医师职称" };
+  if (!career_stage) return { error: "请选择身份类型" };
+  if (license_years === null || Number.isNaN(license_years) || license_years < 0 || license_years > 80) {
+    return { error: "请填写取得执业医师资格证后的时间（0-80 年，未取得填 0）" };
+  }
+
+  return { display_name, work_hospital, physician_title, career_stage, license_years };
+}
+
 function bindLogin() {
   const form = $("login-form");
   if (!form) return;
@@ -53,8 +72,12 @@ function bindRegister() {
     const username = $("username").value.trim();
     const password = $("password").value;
     const password2 = $("password2").value;
-    const display_name = $("display_name").value.trim() || undefined;
+    const profile = readProfileFields();
 
+    if (profile.error) {
+      showFeedback(profile.error);
+      return;
+    }
     if (password !== password2) {
       showFeedback("两次输入的密码不一致");
       return;
@@ -70,7 +93,7 @@ function bindRegister() {
 
     disable(form, true);
     try {
-      await apiPost("/api/auth/register", { username, password, display_name });
+      await apiPost("/api/auth/register", { username, password, ...profile });
       showFeedback("注册成功，跳转中…", "success");
       window.location.href = "/";
     } catch (err) {

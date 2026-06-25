@@ -21,6 +21,7 @@ from app.models import (
     User,
 )
 from app.services.storage import store_local_image
+from tests.conftest import register_user
 
 
 def _png_bytes(seed: int = 0) -> bytes:
@@ -33,10 +34,7 @@ def _png_bytes(seed: int = 0) -> bytes:
 
 def _make_user(client: TestClient, username: str, role: str = ROLE_DOCTOR) -> None:
     """注册并把角色按 role 提升（直接改 DB）。"""
-    r = client.post(
-        "/api/auth/register",
-        json={"username": username, "password": "secret123", "display_name": username},
-    )
+    r = register_user(client, username, display_name=username)
     assert r.status_code == 201
     if role != ROLE_DOCTOR:
         with SessionLocal() as db:

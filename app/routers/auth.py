@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db import get_db
 from app.models import ROLE_DOCTOR, User
-from app.schemas import UserCreate, UserLogin, UserPublic
+from app.schemas import UserCreate, UserLogin, UserProfileUpdate, UserPublic
 from app.security import hash_password, verify_password
 
 # 用户名只允许字母数字下划线，3-32 位
@@ -37,7 +37,11 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
     user = User(
         username=payload.username,
         password_hash=hash_password(payload.password),
-        display_name=payload.display_name or None,
+        display_name=payload.display_name,
+        work_hospital=payload.work_hospital,
+        career_stage=payload.career_stage,
+        license_years=payload.license_years,
+        physician_title=payload.physician_title,
         role=ROLE_DOCTOR,
         is_active=1,
     )
@@ -80,4 +84,38 @@ def logout(request: Request) -> dict[str, bool]:
 
 @me_router.get("/me", response_model=UserPublic)
 def me(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@me_router.patch("/me", response_model=UserPublic)
+def update_me(
+    payload: UserProfileUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    if not any(
+        value is not None
+        for value in (
+            payload.display_name,
+            payload.work_hospital,
+            payload.physician_title,
+            payload.career_stage,
+            payload.license_years,
+        )
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "请至少填写一项资料")
+
+    if payload.display_name is not None:
+        user.display_name = payload.display_name
+    if payload.work_hospital is not None:
+        user.work_hospital = payload.work_hospital
+    if payload.physician_title is not None:
+        user.physician_title = payload.physician_title
+    if payload.career_stage is not None:
+        user.career_stage = payload.career_stage
+    if payload.license_years is not None:
+        user.license_years = payload.license_years
+
+    db.commit()
+    db.refresh(user)
     return user

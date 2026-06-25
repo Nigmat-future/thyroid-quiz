@@ -54,6 +54,7 @@ def stream_attempts_csv(db: Session) -> Iterator[bytes]:
     w = _writer(buf)
     w.writerow([
         "attempt_id", "user_id", "username", "display_name",
+        "work_hospital", "physician_title", "career_stage", "license_years",
         "task_code", "task_name", "status",
         "batch_index",
         "total", "correct", "score",
@@ -74,6 +75,8 @@ def stream_attempts_csv(db: Session) -> Iterator[bytes]:
         metrics = summarize_attempt_metrics(_metric_rows_for_attempt(db, a))
         w.writerow([
             a.id, u.id, u.username, u.display_name or "",
+            u.work_hospital or "", u.physician_title or "", u.career_stage or "",
+            u.license_years if u.license_years is not None else "",
             t.code, t.name, a.status,
             a.batch_index,
             metrics.total,
@@ -94,6 +97,7 @@ def stream_answers_csv(db: Session) -> Iterator[bytes]:
     w = _writer(buf)
     w.writerow([
         "attempt_id", "username", "display_name",
+        "work_hospital", "physician_title", "career_stage", "license_years",
         "task_code", "task_name",
         "question_id", "order_index", "batch_index", "batch_position",
         "answer_text", "ground_truth", "is_correct",
@@ -122,6 +126,8 @@ def stream_answers_csv(db: Session) -> Iterator[bytes]:
         malignancy_score = malignancy_score_for(ans.answer_text)
         w.writerow([
             a.id, u.username, u.display_name or "",
+            u.work_hospital or "", u.physician_title or "", u.career_stage or "",
+            u.license_years if u.license_years is not None else "",
             t.code, t.name,
             q.id, q.order_index, q.batch_index, q.batch_position,
             ans.answer_text, q.ground_truth,

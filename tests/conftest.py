@@ -46,6 +46,25 @@ def client() -> TestClient:
     return TestClient(app)
 
 
+def sample_user_profile(**overrides):
+    payload = {
+        "display_name": "王医生",
+        "work_hospital": "测试医院",
+        "physician_title": "主治医师",
+        "career_stage": "practitioner",
+        "license_years": 3,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def register_user(client: TestClient, username: str, password: str = "secret123", **profile_overrides):
+    return client.post(
+        "/api/auth/register",
+        json={"username": username, "password": password, **sample_user_profile(**profile_overrides)},
+    )
+
+
 def pytest_sessionfinish(session, exitstatus):
     """跑完测试清掉临时目录。"""
     shutil.rmtree(_TEST_ROOT, ignore_errors=True)

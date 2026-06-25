@@ -86,7 +86,21 @@
       </div>
       <form class="form-grid two-col" id="user-form">
         <input type="hidden" id="m-id">
-        <label class="field"><span>显示名</span><input type="text" id="m-display"></label>
+        <label class="field"><span>真名</span><input type="text" id="m-display"></label>
+        <label class="field"><span>工作医院</span><input type="text" id="m-hospital"></label>
+        <label class="field"><span>医师职称</span><input type="text" id="m-title" maxlength="64"></label>
+        <label class="field">
+          <span>身份类型</span>
+          <select id="m-career">
+            <option value="">未填写</option>
+            <option value="graduate">研究生</option>
+            <option value="practitioner">已入职大夫</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>执业资格后时间（年）</span>
+          <input type="number" id="m-license-years" min="0" max="80">
+        </label>
         <label class="field">
           <span>角色</span>
           <select id="m-role">

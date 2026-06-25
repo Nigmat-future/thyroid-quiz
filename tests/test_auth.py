@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from tests.conftest import register_user, sample_user_profile
+
 
 def _register(client: TestClient, username: str = "drwang", password: str = "secret123",
-              display: str | None = "王医生"):
-    return client.post(
-        "/api/auth/register",
-        json={"username": username, "password": password, "display_name": display},
-    )
+              display: str | None = "王医生", **profile_overrides):
+    overrides = sample_user_profile(display_name=display or "王医生", **profile_overrides)
+    return register_user(client, username, password, **overrides)
 
 
 def test_register_creates_doctor_and_logs_in(client: TestClient) -> None:
@@ -19,6 +19,11 @@ def test_register_creates_doctor_and_logs_in(client: TestClient) -> None:
     body = resp.json()
     assert body["username"] == "drwang"
     assert body["display_name"] == "王医生"
+    assert body["work_hospital"] == "测试医院"
+    assert body["physician_title"] == "主治医师"
+    assert body["career_stage"] == "practitioner"
+    assert body["license_years"] == 3
+    assert body["profile_complete"] is True
     assert body["role"] == "doctor"
     assert body["is_active"] == 1
     assert "password_hash" not in body
@@ -113,7 +118,7 @@ def test_long_password_does_not_500_and_can_login(client: TestClient) -> None:
     回归 bcrypt>=4 对超 72 字节密码抛 ValueError 的问题。
     """
     long_pw = "密码" * 20  # 40 字 → 120 字节 UTF-8，远超 72
-    resp = _register(client, username="longpw", password=long_pw, display=None)
+    resp = _register(client, username="longpw", password=long_pw, display="测试用户")
     assert resp.status_code == 201, resp.text
 
     other = TestClient(client.app)
@@ -124,7 +129,7 @@ def test_long_password_does_not_500_and_can_login(client: TestClient) -> None:
 def test_passwords_differing_only_after_72_bytes_treated_equal(client: TestClient) -> None:
     """与 bcrypt 一致：仅在 72 字节之后不同的密码视为同一密码。"""
     base = "a" * 72
-    _register(client, username="trunc", password=base + "XXXX", display=None)
+    _register(client, username="trunc", password=base + "XXXX", display="测试用户")
     other = TestClient(client.app)
     r = other.post("/api/auth/login", json={"username": "trunc", "password": base + "ZZZZ"})
     assert r.status_code == 200, r.text
@@ -280,6 +285,49 @@ def test_role_guard_rejects_doctor(client: TestClient) -> None:
 def test_health_still_ok(client: TestClient) -> None:
     """M0 端点别因为 M1 改动出问题。"""
     assert client.get("/api/health").status_code == 200
+
+
+def test_legacy_user_profile_incomplete_until_updated(client: TestClient) -> None:
+    from app.db import SessionLocal
+    from app.models import ROLE_DOCTOR, User
+    from app.security import hash_password
+
+    with SessionLocal() as db:
+        db.add(
+            User(
+                username="legacy",
+                password_hash=hash_password("secret123"),
+                display_name="旧用户",
+                role=ROLE_DOCTOR,
+                is_active=1,
+            )
+        )
+        db.commit()
+
+    assert client.post("/api/auth/login", json={"username": "legacy", "password": "secret123"}).status_code == 200
+    me = client.get("/api/me")
+    assert me.status_code == 200
+    body = me.json()
+    assert body["profile_complete"] is False
+
+    updated = client.patch(
+        "/api/me",
+        json={
+            "display_name": "旧用户",
+            "work_hospital": "历史医院",
+            "physician_title": "无",
+            "career_stage": "graduate",
+            "license_years": 0,
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["profile_complete"] is True
+
+
+def test_update_me_rejects_empty_payload(client: TestClient) -> None:
+    _register(client, username="bob", password="abc12345")
+    resp = client.patch("/api/me", json={})
+    assert resp.status_code == 400
 
 
 def test_create_app_rejects_default_secret_key_in_production() -> None:

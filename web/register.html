@@ -21,8 +21,28 @@
           <input id="username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_]+" placeholder="3-32 位字母数字下划线">
         </label>
         <label class="field">
-          <span>显示名</span>
-          <input id="display_name" name="display_name" type="text" autocomplete="name" maxlength="128" placeholder="例如：张医生 / 张研究员">
+          <span>真名 *</span>
+          <input id="display_name" name="display_name" type="text" autocomplete="name" required maxlength="128" placeholder="例如：张三">
+        </label>
+        <label class="field">
+          <span>工作医院 *</span>
+          <input id="work_hospital" name="work_hospital" type="text" required maxlength="256" placeholder="例如：北京协和医院">
+        </label>
+        <label class="field">
+          <span>医师职称 *</span>
+          <input id="physician_title" name="physician_title" type="text" required maxlength="64" placeholder="例如：主治医师（研究生可填「无」）">
+        </label>
+        <label class="field">
+          <span>身份类型 *</span>
+          <select id="career_stage" name="career_stage" required>
+            <option value="">请选择</option>
+            <option value="graduate">研究生</option>
+            <option value="practitioner">已入职大夫</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>取得执业医师资格证后的时间（年） *</span>
+          <input id="license_years" name="license_years" type="number" min="0" max="80" required placeholder="未取得填 0">
         </label>
         <label class="field">
           <span>密码 *</span>

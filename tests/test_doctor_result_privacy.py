@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import ROLE_AUTHOR, ROLE_DOCTOR, User
+from tests.conftest import register_user
 
 
 def _png(seed: int) -> bytes:
@@ -21,10 +22,7 @@ def _png(seed: int) -> bytes:
 
 
 def _make_user(client: TestClient, username: str, role: str = ROLE_DOCTOR) -> int:
-    response = client.post(
-        "/api/auth/register",
-        json={"username": username, "password": "secret123", "display_name": username},
-    )
+    response = register_user(client, username, display_name=username)
     assert response.status_code == 201, response.text
     if role == ROLE_DOCTOR:
         return int(response.json()["id"])
