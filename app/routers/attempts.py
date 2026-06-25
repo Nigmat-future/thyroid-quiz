@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
+from app.auth import require_profile_complete
 from app.db import get_db
 from app.models import (
     ROLE_DOCTOR,
@@ -72,7 +72,7 @@ def _batch_exists(db: Session, task_id: int, batch_index: int) -> bool:
 @attempts_router.post("", response_model=AttemptInProgress, status_code=status.HTTP_201_CREATED)
 def create_or_resume_attempt(
     payload: AttemptCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> AttemptInProgress:
     task = _published_task_or_404(db, payload.task_code, user)
@@ -106,7 +106,7 @@ def create_or_resume_attempt(
 @attempts_router.get("/{attempt_id}", response_model=AttemptInProgress)
 def get_attempt(
     attempt_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> AttemptInProgress:
     a = _own_attempt_or_404(db, attempt_id, user)
@@ -123,7 +123,7 @@ def upsert_answer(
     attempt_id: int,
     question_id: int,
     payload: AnswerInput,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> AnswerSnapshot:
     attempt = _own_attempt_or_404(db, attempt_id, user)
@@ -186,7 +186,7 @@ def upsert_answer(
 @attempts_router.post("/{attempt_id}/submit", response_model=AttemptResult)
 def submit(
     attempt_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> AttemptResult:
     attempt = _own_attempt_or_404(db, attempt_id, user)
@@ -200,7 +200,7 @@ def submit(
 @attempts_router.get("/{attempt_id}/result", response_model=AttemptResult)
 def get_result(
     attempt_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> AttemptResult:
     attempt = _own_attempt_or_404(db, attempt_id, user)
@@ -211,7 +211,7 @@ def get_result(
 
 @attempts_router.get("", response_model=list[AttemptHistoryItem])
 def my_attempts(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> list[AttemptHistoryItem]:
     """医生看自己的答题历史。"""

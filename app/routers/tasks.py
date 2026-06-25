@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_role
+from app.auth import require_profile_complete, require_role
 from app.db import get_db
 from app.models import (
     ROLE_ADMIN,
@@ -127,7 +127,7 @@ def _question_admin_dict(q: Question) -> dict:
 
 @tasks_router.get("", response_model=list[TaskPublic])
 def list_tasks(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     """医生看到的是 published 任务；author/admin 能看到自己/全部。"""
@@ -144,7 +144,7 @@ def list_tasks(
 @tasks_router.get("/{code}", response_model=TaskPublic)
 def get_task_public(
     code: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> dict:
     task = db.scalar(select(Task).where(Task.code == code))
@@ -158,7 +158,7 @@ def get_task_public(
 @tasks_router.get("/{code}/batches", response_model=list[dict])
 def list_task_batches(
     code: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_profile_complete),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     """按批次列出任务入口；医生首页用它避免一次面对全部题。"""
@@ -464,7 +464,7 @@ def delete_question(
 # ---------- 鉴权图片下发 ----------
 
 @storage_router.get("/{image_path:path}")
-def serve_image(image_path: str, _: User = Depends(get_current_user)) -> FileResponse:
+def serve_image(image_path: str, _: User = Depends(require_profile_complete)) -> FileResponse:
     """登录用户才能拉图。M2 起替换 StaticFiles 直挂的 /storage。"""
     target = resolve_image_path(image_path)
     return FileResponse(target, media_type=media_type_of(target))

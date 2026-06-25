@@ -1,4 +1,5 @@
-import { apiGet, fetchMe } from "./api.js";
+import { apiGet } from "./api.js";
+import { requireLoggedInWithProfile } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 const attemptId = Number(location.pathname.split("/").filter(Boolean).pop() || 0);
@@ -26,8 +27,8 @@ function rowLabel(r, i) {
 }
 
 async function load() {
-  const me = await fetchMe();
-  if (!me) { window.location.href = "/login"; return; }
+  const me = await requireLoggedInWithProfile();
+  if (!me) return;
 
   let res;
   try {

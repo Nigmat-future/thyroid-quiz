@@ -1,6 +1,7 @@
 // 答题主逻辑：load attempt -> 渲染图像 -> 自动保存 -> 提交。
-import { api, apiGet, apiPost, fetchMe } from "./api.js";
+import { api, apiGet, apiPost } from "./api.js";
 import { preloadNextQuestionImage } from "./image_preload.js";
+import { requireLoggedInWithProfile } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 const attemptId = Number(location.pathname.split("/").filter(Boolean).pop() || 0);
@@ -92,8 +93,8 @@ function questionLabel(q, idx) {
 }
 
 async function load() {
-  const me = await fetchMe();
-  if (!me) { window.location.href = "/login"; return; }
+  const me = await requireLoggedInWithProfile();
+  if (!me) return;
   try {
     attempt = await apiGet(`/api/attempts/${attemptId}`);
   } catch (e) {

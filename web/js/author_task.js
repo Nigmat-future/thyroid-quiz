@@ -1,5 +1,6 @@
 // 研究任务图像集管理：上传图像 + 维护参考标准
-import { api, apiGet, apiPatch, apiPost, apiDelete, fetchMe } from "./api.js";
+import { api, apiGet, apiPatch, apiPost, apiDelete } from "./api.js";
+import { requireLoggedInWithProfile } from "./profile.js";
 import {
   MAX_PENDING_PREVIEW_ROWS,
   clearPendingItems,
@@ -38,8 +39,8 @@ function clearPending() {
 }
 
 async function ensureAuthor() {
-  const me = await fetchMe();
-  if (!me) { window.location.href = "/login"; return null; }
+  const me = await requireLoggedInWithProfile();
+  if (!me) return null;
   if (me.role !== "author" && me.role !== "admin") {
     document.querySelector("main").innerHTML = `<section class="panel"><h2>权限不足</h2></section>`;
     return null;

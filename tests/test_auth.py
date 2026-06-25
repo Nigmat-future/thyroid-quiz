@@ -328,6 +328,32 @@ def test_legacy_user_profile_incomplete_until_updated(client: TestClient) -> Non
     assert updated.json()["profile_complete"] is True
 
 
+def test_incomplete_profile_blocked_from_attempts(client: TestClient) -> None:
+    from app.db import SessionLocal
+    from app.models import ROLE_DOCTOR, User
+    from app.security import hash_password
+
+    with SessionLocal() as db:
+        db.add(
+            User(
+                username="legacy2",
+                password_hash=hash_password("secret123"),
+                display_name="旧用户",
+                role=ROLE_DOCTOR,
+                is_active=1,
+            )
+        )
+        db.commit()
+
+    assert client.post(
+        "/api/auth/login",
+        json={"username": "legacy2", "password": "secret123"},
+    ).status_code == 200
+    resp = client.post("/api/attempts", json={"task_code": "missing"})
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "请先完善个人资料"
+
+
 def test_update_me_rejects_empty_payload(client: TestClient) -> None:
     _register(client, username="bob", password="abc12345")
     resp = client.patch("/api/me", json={})

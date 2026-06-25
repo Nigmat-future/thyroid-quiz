@@ -48,6 +48,15 @@ def require_role(*roles: str) -> Callable[[User], User]:
     def dep(user: User = Depends(get_current_user)) -> User:
         if user.role not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="权限不足")
+        if not user.profile_complete:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="请先完善个人资料")
         return user
 
     return dep
+
+
+def require_profile_complete(user: User = Depends(get_current_user)) -> User:
+    """已登录且个人资料完整；否则 403。"""
+    if not user.profile_complete:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="请先完善个人资料")
+    return user

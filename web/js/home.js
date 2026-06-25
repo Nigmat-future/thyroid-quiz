@@ -1,5 +1,6 @@
 // 首页：登录态展示 + 研究任务列表 + 判读历史。
-import { fetchMe, apiGet, apiPatch, apiPost } from "./api.js";
+import { fetchMe, apiGet, apiPost } from "./api.js";
+import { ensureProfileComplete } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,70 +19,6 @@ function escapeHtml(s) {
 function fmt(d) {
   if (!d) return "-";
   return new Date(d).toLocaleString("zh-CN", { hour12: false });
-}
-
-function readProfileForm() {
-  const display_name = $("p-display-name").value.trim();
-  const work_hospital = $("p-work-hospital").value.trim();
-  const physician_title = $("p-physician-title").value.trim();
-  const career_stage = $("p-career-stage").value;
-  const licenseRaw = $("p-license-years").value.trim();
-  const license_years = licenseRaw === "" ? null : Number(licenseRaw);
-
-  if (!display_name) return { error: "请填写真名" };
-  if (!work_hospital) return { error: "请填写工作医院" };
-  if (!physician_title) return { error: "请填写医师职称" };
-  if (!career_stage) return { error: "请选择身份类型" };
-  if (license_years === null || Number.isNaN(license_years) || license_years < 0 || license_years > 80) {
-    return { error: "请填写取得执业医师资格证后的时间（0-80 年，未取得填 0）" };
-  }
-  return { display_name, work_hospital, physician_title, career_stage, license_years };
-}
-
-function showProfileModal(me) {
-  const modal = $("profile-modal");
-  if (!modal) return Promise.resolve(me);
-
-  $("p-display-name").value = me.display_name || "";
-  $("p-work-hospital").value = me.work_hospital || "";
-  $("p-physician-title").value = me.physician_title || "";
-  $("p-career-stage").value = me.career_stage || "";
-  $("p-license-years").value = me.license_years ?? "";
-  $("profile-feedback").textContent = "";
-  modal.classList.remove("hidden");
-  $("body-after-auth").classList.add("hidden");
-
-  return new Promise((resolve) => {
-    const form = $("profile-form");
-    const submitBtn = $("profile-submit-btn");
-    form.addEventListener("submit", async function onSubmit(e) {
-      e.preventDefault();
-      const profile = readProfileForm();
-      const feedback = $("profile-feedback");
-      if (profile.error) {
-        feedback.textContent = profile.error;
-        feedback.dataset.kind = "error";
-        return;
-      }
-      submitBtn.disabled = true;
-      feedback.textContent = "";
-      try {
-        const updated = await apiPatch("/api/me", profile);
-        modal.classList.add("hidden");
-        form.removeEventListener("submit", onSubmit);
-        resolve(updated);
-      } catch (err) {
-        feedback.textContent = err.message || "保存失败";
-        feedback.dataset.kind = "error";
-        submitBtn.disabled = false;
-      }
-    });
-  });
-}
-
-async function ensureProfileComplete(me) {
-  if (me.profile_complete) return me;
-  return showProfileModal(me);
 }
 
 async function startAttempt(code, batchIndex = null) {

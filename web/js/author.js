@@ -1,5 +1,6 @@
 // 任务管理员首页：新建任务 + 列出任务（自己 + 已发布）
-import { apiGet, apiPost, fetchMe } from "./api.js";
+import { apiGet, apiPost } from "./api.js";
+import { requireLoggedInWithProfile } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -24,11 +25,8 @@ function parseOptions(text) {
 }
 
 async function ensureAuthor() {
-  const me = await fetchMe();
-  if (!me) {
-    window.location.href = "/login";
-    return null;
-  }
+  const me = await requireLoggedInWithProfile();
+  if (!me) return null;
   if (me.role !== "author" && me.role !== "admin") {
     document.querySelector("main").innerHTML = `
       <section class="panel">

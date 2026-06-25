@@ -1,6 +1,7 @@
 // 平台管理：账号管理 + 判读记录筛选 + 数据导出
-import { apiGet, apiPatch, fetchMe } from "./api.js";
+import { apiGet, apiPatch } from "./api.js";
 import { bindAttemptDetailButtons, formatAuc } from "./admin_attempt_detail.js";
+import { requireLoggedInWithProfile } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,8 +82,8 @@ function renderAttemptSummaryTable(list) {
 let me = null;
 
 async function ensureAdmin() {
-  me = await fetchMe();
-  if (!me) { window.location.href = "/login"; return false; }
+  me = await requireLoggedInWithProfile();
+  if (!me) return false;
   if (me.role !== "admin") {
     document.querySelector("main").innerHTML = `<section class="panel"><h2>权限不足</h2><p class="brand-copy">仅管理员可访问。</p></section>`;
     return false;
