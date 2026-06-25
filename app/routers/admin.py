@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.auth import require_role
 from app.db import get_db
-from app.models import ALL_ROLES, CAREER_OTHER, ROLE_ADMIN, User
+from app.models import ALL_ROLES, CAREER_OTHER, ROLE_ADMIN, Answer, Attempt, Question, Task, User
 from app.routers.admin_attempts import admin_attempts_router
 from app.schemas import UserAdminUpdate, UserPublic
 from app.schemas_admin import AdminUserSummary
@@ -108,6 +108,41 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@admin_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    actor: User = Depends(require_role(ROLE_ADMIN)),
+    db: Session = Depends(get_db),
+) -> None:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "用户不存在")
+    if user.id == actor.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "不能删除自己")
+
+    # 删该用户的 attempts + answers
+    attempt_ids = list(db.scalars(select(Attempt.id).where(Attempt.user_id == user_id)))
+    if attempt_ids:
+        db.execute(delete(Answer).where(Answer.attempt_id.in_(attempt_ids)))
+        db.execute(delete(Attempt).where(Attempt.user_id == user_id))
+
+    # 删该用户创建的 task（含其下的 attempts/answers/questions）
+    task_ids = list(db.scalars(select(Task.id).where(Task.created_by == user_id)))
+    for task_id in task_ids:
+        task_attempt_ids = list(db.scalars(select(Attempt.id).where(Attempt.task_id == task_id)))
+        if task_attempt_ids:
+            db.execute(delete(Answer).where(Answer.attempt_id.in_(task_attempt_ids)))
+            db.execute(delete(Attempt).where(Attempt.task_id == task_id))
+        db.execute(delete(Question).where(Question.task_id == task_id))
+        db.execute(delete(Task).where(Task.id == task_id))
+
+    # 删该用户上传的其余题目（归属于其他 task）
+    db.execute(delete(Question).where(Question.uploaded_by == user_id))
+
+    db.delete(user)
+    db.commit()
 
 
 admin_router.include_router(admin_attempts_router)

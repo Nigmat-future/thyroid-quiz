@@ -1,5 +1,5 @@
 // 平台管理：账号管理 + 判读记录筛选 + 数据导出
-import { apiGet, apiPatch } from "./api.js";
+import { apiDelete, apiGet, apiPatch } from "./api.js";
 import { bindAttemptDetailButtons, formatAuc } from "./admin_attempt_detail.js";
 import { bindCareerStageField, formatCareerLabel, fillCareerFields } from "./career.js";
 import { requireLoggedInWithProfile } from "./profile.js";
@@ -151,6 +151,19 @@ function bindUserModal() {
   $("modal-close").addEventListener("click", () => $("user-modal").classList.add("hidden"));
   $("user-modal").addEventListener("click", (e) => {
     if (e.target.id === "user-modal") $("user-modal").classList.add("hidden");
+  });
+  $("m-delete").addEventListener("click", async () => {
+    const id = Number($("m-id").value);
+    const username = $("modal-title").textContent;
+    if (!confirm(`确认删除用户「${username}」？\n此操作不可撤销，将同时删除该用户的全部答题记录。`)) return;
+    try {
+      await apiDelete(`/api/admin/users/${id}`);
+      $("user-modal").classList.add("hidden");
+      await loadUsers();
+    } catch (err) {
+      $("modal-feedback").dataset.kind = "error";
+      $("modal-feedback").textContent = err.message;
+    }
   });
   $("user-form").addEventListener("submit", async (e) => {
     e.preventDefault();
