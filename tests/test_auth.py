@@ -304,7 +304,11 @@ def test_legacy_user_profile_incomplete_until_updated(client: TestClient) -> Non
         )
         db.commit()
 
-    assert client.post("/api/auth/login", json={"username": "legacy", "password": "secret123"}).status_code == 200
+    login = client.post(
+        "/api/auth/login",
+        json={"username": "legacy", "password": "secret123"},
+    )
+    assert login.status_code == 200
     me = client.get("/api/me")
     assert me.status_code == 200
     body = me.json()

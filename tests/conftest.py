@@ -58,11 +58,18 @@ def sample_user_profile(**overrides):
     return payload
 
 
-def register_user(client: TestClient, username: str, password: str = "secret123", **profile_overrides):
-    return client.post(
-        "/api/auth/register",
-        json={"username": username, "password": password, **sample_user_profile(**profile_overrides)},
-    )
+def register_user(
+    client: TestClient,
+    username: str,
+    password: str = "secret123",
+    **profile_overrides,
+):
+    payload = {
+        "username": username,
+        "password": password,
+        **sample_user_profile(**profile_overrides),
+    }
+    return client.post("/api/auth/register", json=payload)
 
 
 def pytest_sessionfinish(session, exitstatus):
