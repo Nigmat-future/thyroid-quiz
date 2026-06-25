@@ -24,6 +24,9 @@ export async function api(method, path, body) {
   if (!res.ok) {
     const detail = data && (data.detail || data.message);
     const msg = typeof detail === "string" ? detail : `请求失败 (${res.status})`;
+    if (res.status === 403 && msg === "请先完善个人资料") {
+      window.dispatchEvent(new CustomEvent("profile:required"));
+    }
     const err = new Error(msg);
     err.status = res.status;
     err.payload = data;

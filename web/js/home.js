@@ -1,6 +1,6 @@
 // 首页：登录态展示 + 研究任务列表 + 判读历史。
 import { fetchMe, apiGet, apiPost } from "./api.js";
-import { ensureProfileComplete } from "./profile.js";
+import { ensureProfileComplete, isProfileIncomplete, recoverFromProfileApiError } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -150,6 +150,11 @@ async function renderTasks() {
       btn.addEventListener("click", () => startAttempt(btn.dataset.code, btn.dataset.batchIndex));
     });
   } catch (e) {
+    const recovered = await recoverFromProfileApiError(e);
+    if (recovered) {
+      await renderTasks();
+      return;
+    }
     root.innerHTML = `<p class="feedback" data-kind="error">加载失败：${escapeHtml(e.message)}</p>`;
   }
 }
@@ -194,6 +199,11 @@ async function renderHistory() {
         `).join("")}</tbody>
       </table>`;
   } catch (e) {
+    const recovered = await recoverFromProfileApiError(e);
+    if (recovered) {
+      await renderHistory();
+      return;
+    }
     root.innerHTML = `<p class="feedback" data-kind="error">加载失败：${escapeHtml(e.message)}</p>`;
   }
 }
@@ -211,7 +221,10 @@ async function render() {
     return;
   }
 
-  me = await ensureProfileComplete(me);
+  $("body-after-auth").classList.add("hidden");
+  if (isProfileIncomplete(me)) {
+    me = await ensureProfileComplete(me);
+  }
 
   const roleLabel = ROLE_LABELS[me.role] || me.role;
   const careerLabel = CAREER_LABELS[me.career_stage] || "";

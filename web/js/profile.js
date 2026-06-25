@@ -48,6 +48,18 @@ const PROFILE_MODAL_HTML = `
     </div>
   </div>`;
 
+export function isProfileIncomplete(me) {
+  if (!me) return true;
+  return !(
+    String(me.display_name || "").trim()
+    && String(me.work_hospital || "").trim()
+    && String(me.physician_title || "").trim()
+    && (me.career_stage === "graduate" || me.career_stage === "practitioner")
+    && me.license_years !== null
+    && me.license_years !== undefined
+  );
+}
+
 function ensureProfileModalDom() {
   if ($("profile-modal")) return;
   document.body.insertAdjacentHTML("beforeend", PROFILE_MODAL_HTML);
@@ -82,10 +94,16 @@ function fillProfileForm(me) {
 
 function showProfileModal(me) {
   ensureProfileModalDom();
-  if (pendingProfilePromise) return pendingProfilePromise;
+  const modal = $("profile-modal");
+  if (!modal) return Promise.resolve(me);
+
+  if (pendingProfilePromise && !modal.classList.contains("hidden")) {
+    return pendingProfilePromise;
+  }
+  pendingProfilePromise = null;
 
   fillProfileForm(me);
-  $("profile-modal").classList.remove("hidden");
+  modal.classList.remove("hidden");
   document.body.classList.add("profile-gate-active");
   $("body-after-auth")?.classList.add("hidden");
 
@@ -106,7 +124,7 @@ function showProfileModal(me) {
       feedback.textContent = "";
       try {
         const updated = await apiPatch("/api/me", profile);
-        $("profile-modal").classList.add("hidden");
+        modal.classList.add("hidden");
         document.body.classList.remove("profile-gate-active");
         $("body-after-auth")?.classList.remove("hidden");
         form.removeEventListener("submit", onSubmit);
@@ -126,7 +144,7 @@ function showProfileModal(me) {
 }
 
 export async function ensureProfileComplete(me) {
-  if (me.profile_complete) return me;
+  if (!isProfileIncomplete(me)) return me;
   return showProfileModal(me);
 }
 
@@ -138,3 +156,19 @@ export async function requireLoggedInWithProfile() {
   }
   return ensureProfileComplete(me);
 }
+
+export async function recoverFromProfileApiError(error) {
+  if (error?.status !== 403 || error.message !== "请先完善个人资料") return null;
+  const me = await fetchMe();
+  if (!me) return null;
+  return ensureProfileComplete(me);
+}
+
+window.addEventListener("profile:required", () => {
+  fetchMe()
+    .then((me) => {
+      if (me && isProfileIncomplete(me)) return showProfileModal(me);
+      return me;
+    })
+    .catch(() => {});
+});
