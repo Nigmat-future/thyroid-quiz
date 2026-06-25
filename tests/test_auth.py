@@ -328,6 +328,20 @@ def test_legacy_user_profile_incomplete_until_updated(client: TestClient) -> Non
     assert updated.json()["profile_complete"] is True
 
 
+def test_register_with_other_career_stage(client: TestClient) -> None:
+    resp = register_user(
+        client,
+        "otheruser",
+        career_stage="other",
+        career_stage_other="进修医师",
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["career_stage"] == "other"
+    assert body["career_stage_other"] == "进修医师"
+    assert body["profile_complete"] is True
+
+
 def test_incomplete_profile_blocked_from_attempts(client: TestClient) -> None:
     from app.db import SessionLocal
     from app.models import ROLE_DOCTOR, User

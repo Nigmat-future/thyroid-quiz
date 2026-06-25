@@ -1,9 +1,17 @@
 // 全站资料补填：不完整时注入弹窗并阻塞，直到 PATCH /api/me 成功。
 import { apiPatch, fetchMe } from "./api.js";
+import {
+  bindCareerStageField,
+  CAREER_STAGE_OPTIONS,
+  fillCareerFields,
+  isCareerComplete,
+  readCareerFields,
+} from "./career.js";
 
 const $ = (id) => document.getElementById(id);
 
 let pendingProfilePromise = null;
+let careerFieldBound = false;
 
 const PROFILE_MODAL_HTML = `
   <div class="modal hidden" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
@@ -31,10 +39,12 @@ const PROFILE_MODAL_HTML = `
         <label class="field">
           <span>身份类型 *</span>
           <select id="p-career-stage" name="career_stage" required>
-            <option value="">请选择</option>
-            <option value="graduate">研究生</option>
-            <option value="practitioner">已入职大夫</option>
+            ${CAREER_STAGE_OPTIONS}
           </select>
+        </label>
+        <label class="field hidden" id="p-career-other-wrap">
+          <span>请说明身份 *</span>
+          <input id="p-career-other" name="career_stage_other" type="text" maxlength="128" placeholder="例如：进修医师 / 规培生">
         </label>
         <label class="field">
           <span>取得执业医师资格证后的时间（年） *</span>
@@ -54,7 +64,7 @@ export function isProfileIncomplete(me) {
     String(me.display_name || "").trim()
     && String(me.work_hospital || "").trim()
     && String(me.physician_title || "").trim()
-    && (me.career_stage === "graduate" || me.career_stage === "practitioner")
+    && isCareerComplete(me)
     && me.license_years !== null
     && me.license_years !== undefined
   );
@@ -63,31 +73,46 @@ export function isProfileIncomplete(me) {
 function ensureProfileModalDom() {
   if ($("profile-modal")) return;
   document.body.insertAdjacentHTML("beforeend", PROFILE_MODAL_HTML);
+  if (!careerFieldBound) {
+    bindCareerStageField({
+      stageId: "p-career-stage",
+      otherWrapId: "p-career-other-wrap",
+      otherInputId: "p-career-other",
+    });
+    careerFieldBound = true;
+  }
 }
 
 function readProfileForm() {
   const display_name = $("p-display-name").value.trim();
   const work_hospital = $("p-work-hospital").value.trim();
   const physician_title = $("p-physician-title").value.trim();
-  const career_stage = $("p-career-stage").value;
   const licenseRaw = $("p-license-years").value.trim();
   const license_years = licenseRaw === "" ? null : Number(licenseRaw);
+  const career = readCareerFields($("p-career-stage"), $("p-career-other"));
 
   if (!display_name) return { error: "请填写真名" };
   if (!work_hospital) return { error: "请填写工作医院" };
   if (!physician_title) return { error: "请填写医师职称" };
-  if (!career_stage) return { error: "请选择身份类型" };
+  if (career.error) return career;
   if (license_years === null || Number.isNaN(license_years) || license_years < 0 || license_years > 80) {
     return { error: "请填写取得执业医师资格证后的时间（0-80 年，未取得填 0）" };
   }
-  return { display_name, work_hospital, physician_title, career_stage, license_years };
+  return {
+    display_name,
+    work_hospital,
+    physician_title,
+    career_stage: career.career_stage,
+    career_stage_other: career.career_stage_other,
+    license_years,
+  };
 }
 
 function fillProfileForm(me) {
   $("p-display-name").value = me.display_name || "";
   $("p-work-hospital").value = me.work_hospital || "";
   $("p-physician-title").value = me.physician_title || "";
-  $("p-career-stage").value = me.career_stage || "";
+  fillCareerFields(me, $("p-career-stage"), $("p-career-other"), $("p-career-other-wrap"));
   $("p-license-years").value = me.license_years ?? "";
   $("profile-feedback").textContent = "";
 }

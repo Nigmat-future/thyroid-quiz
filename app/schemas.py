@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models import ALL_CAREER_STAGES, CAREER_GRADUATE, CAREER_PRACTITIONER
+from app.models import (
+    ALL_CAREER_STAGES,
+    CAREER_GRADUATE,
+    CAREER_OTHER,
+    CAREER_PRACTITIONER,
+)
 
 # ===== Auth =====
 
@@ -18,11 +23,16 @@ def _clean_text(value: str | None) -> str | None:
     return cleaned or None
 
 
+def _career_stage_error() -> str:
+    return f"无效身份类型，应为 {CAREER_GRADUATE}、{CAREER_PRACTITIONER} 或 {CAREER_OTHER}"
+
+
 class UserProfileFields(BaseModel):
     display_name: str = Field(min_length=1, max_length=128)
     work_hospital: str = Field(min_length=1, max_length=256)
     physician_title: str = Field(min_length=1, max_length=64)
     career_stage: str = Field(min_length=1, max_length=32)
+    career_stage_other: str | None = Field(default=None, max_length=128)
     license_years: int = Field(ge=0, le=80)
 
     @field_validator("display_name", "work_hospital", "physician_title")
@@ -33,12 +43,26 @@ class UserProfileFields(BaseModel):
             raise ValueError("不可为空")
         return cleaned
 
+    @field_validator("career_stage_other")
+    @classmethod
+    def _strip_career_other(cls, v: str | None) -> str | None:
+        return _clean_text(v)
+
     @field_validator("career_stage")
     @classmethod
     def _validate_career_stage(cls, v: str) -> str:
         if v not in ALL_CAREER_STAGES:
-            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+            raise ValueError(_career_stage_error())
         return v
+
+    @model_validator(mode="after")
+    def _validate_career_other_required(self) -> UserProfileFields:
+        if self.career_stage == CAREER_OTHER:
+            if not self.career_stage_other:
+                raise ValueError("选择「其他」时请填写身份说明")
+        else:
+            self.career_stage_other = None
+        return self
 
 
 class UserCreate(UserProfileFields):
@@ -60,6 +84,7 @@ class UserPublic(BaseModel):
     work_hospital: str | None
     physician_title: str | None
     career_stage: str | None
+    career_stage_other: str | None
     license_years: int | None
     profile_complete: bool
     role: str
@@ -72,11 +97,17 @@ class UserProfileUpdate(BaseModel):
     work_hospital: str | None = Field(default=None, min_length=1, max_length=256)
     physician_title: str | None = Field(default=None, min_length=1, max_length=64)
     career_stage: str | None = Field(default=None, min_length=1, max_length=32)
+    career_stage_other: str | None = Field(default=None, max_length=128)
     license_years: int | None = Field(default=None, ge=0, le=80)
 
     @field_validator("display_name", "work_hospital", "physician_title")
     @classmethod
     def _strip_optional_text(cls, v: str | None) -> str | None:
+        return _clean_text(v)
+
+    @field_validator("career_stage_other")
+    @classmethod
+    def _strip_optional_career_other(cls, v: str | None) -> str | None:
         return _clean_text(v)
 
     @field_validator("career_stage")
@@ -85,7 +116,7 @@ class UserProfileUpdate(BaseModel):
         if v is None:
             return None
         if v not in ALL_CAREER_STAGES:
-            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+            raise ValueError(_career_stage_error())
         return v
 
 
@@ -111,11 +142,17 @@ class UserAdminUpdate(BaseModel):
     work_hospital: str | None = Field(default=None, max_length=256)
     physician_title: str | None = Field(default=None, max_length=64)
     career_stage: str | None = Field(default=None, max_length=32)
+    career_stage_other: str | None = Field(default=None, max_length=128)
     license_years: int | None = Field(default=None, ge=0, le=80)
 
     @field_validator("display_name", "work_hospital", "physician_title")
     @classmethod
     def _strip_admin_text(cls, v: str | None) -> str | None:
+        return _clean_text(v)
+
+    @field_validator("career_stage_other")
+    @classmethod
+    def _strip_admin_career_other(cls, v: str | None) -> str | None:
         return _clean_text(v)
 
     @field_validator("career_stage")
@@ -124,7 +161,7 @@ class UserAdminUpdate(BaseModel):
         if v is None:
             return None
         if v not in ALL_CAREER_STAGES:
-            raise ValueError(f"无效身份类型，应为 {CAREER_GRADUATE} 或 {CAREER_PRACTITIONER}")
+            raise ValueError(_career_stage_error())
         return v
 
 

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_role
 from app.db import get_db
-from app.models import ALL_ROLES, ROLE_ADMIN, User
+from app.models import ALL_ROLES, CAREER_OTHER, ROLE_ADMIN, User
 from app.routers.admin_attempts import admin_attempts_router
 from app.schemas import UserAdminUpdate, UserPublic
 from app.schemas_admin import AdminUserSummary
@@ -32,6 +32,7 @@ def list_users(db: Session = Depends(get_db)) -> list[AdminUserSummary]:
             work_hospital=user.work_hospital,
             physician_title=user.physician_title,
             career_stage=user.career_stage,
+            career_stage_other=user.career_stage_other,
             license_years=user.license_years,
             profile_complete=user.profile_complete,
             role=user.role,
@@ -95,6 +96,11 @@ def update_user(
 
     if payload.career_stage is not None:
         user.career_stage = payload.career_stage or None
+        if user.career_stage != CAREER_OTHER:
+            user.career_stage_other = None
+
+    if payload.career_stage_other is not None:
+        user.career_stage_other = payload.career_stage_other or None
 
     if payload.license_years is not None:
         user.license_years = payload.license_years

@@ -28,7 +28,8 @@ ALL_ROLES = (ROLE_ADMIN, ROLE_AUTHOR, ROLE_DOCTOR)
 # 职业阶段
 CAREER_GRADUATE = "graduate"
 CAREER_PRACTITIONER = "practitioner"
-ALL_CAREER_STAGES = (CAREER_GRADUATE, CAREER_PRACTITIONER)
+CAREER_OTHER = "other"
+ALL_CAREER_STAGES = (CAREER_GRADUATE, CAREER_PRACTITIONER, CAREER_OTHER)
 
 # Attempt 状态常量
 STATUS_IN_PROGRESS = "in_progress"
@@ -44,6 +45,7 @@ class User(Base):
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     work_hospital: Mapped[str | None] = mapped_column(String(256), nullable=True)
     career_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    career_stage_other: Mapped[str | None] = mapped_column(String(128), nullable=True)
     license_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
     physician_title: Mapped[str | None] = mapped_column(String(64), nullable=True)
     role: Mapped[str] = mapped_column(String(16), nullable=False, default=ROLE_DOCTOR)
@@ -60,6 +62,10 @@ class User(Base):
             and self.work_hospital
             and self.work_hospital.strip()
             and self.career_stage in ALL_CAREER_STAGES
+            and (
+                self.career_stage != CAREER_OTHER
+                or bool(self.career_stage_other and self.career_stage_other.strip())
+            )
             and self.license_years is not None
             and self.physician_title
             and self.physician_title.strip()

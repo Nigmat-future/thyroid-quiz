@@ -1,11 +1,11 @@
 // 首页：登录态展示 + 研究任务列表 + 判读历史。
 import { fetchMe, apiGet, apiPost } from "./api.js";
+import { formatCareerLabel } from "./career.js";
 import { ensureProfileComplete, isProfileIncomplete, recoverFromProfileApiError } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
 const ROLE_LABELS = { admin: "管理员", author: "任务管理员", doctor: "判读者" };
-const CAREER_LABELS = { graduate: "研究生", practitioner: "已入职大夫" };
 const STATUS_LABELS = { in_progress: "进行中", submitted: "已提交" };
 const BATCH_STATUS_LABELS = { not_started: "未开始", in_progress: "进行中", submitted: "已提交" };
 const BATCH_STATUS_CLASS = { not_started: "chip-muted", in_progress: "chip-warning", submitted: "chip-success" };
@@ -227,7 +227,7 @@ async function render() {
   }
 
   const roleLabel = ROLE_LABELS[me.role] || me.role;
-  const careerLabel = CAREER_LABELS[me.career_stage] || "";
+  const careerLabel = formatCareerLabel(me);
   const profileBits = [
     me.work_hospital ? `工作医院：${escapeHtml(me.work_hospital)}` : "",
     me.physician_title ? `职称：${escapeHtml(me.physician_title)}` : "",

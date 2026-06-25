@@ -1,12 +1,12 @@
 // 平台管理：账号管理 + 判读记录筛选 + 数据导出
 import { apiGet, apiPatch } from "./api.js";
 import { bindAttemptDetailButtons, formatAuc } from "./admin_attempt_detail.js";
+import { bindCareerStageField, formatCareerLabel, fillCareerFields } from "./career.js";
 import { requireLoggedInWithProfile } from "./profile.js";
 
 const $ = (id) => document.getElementById(id);
 
 const ROLE_LABELS = { admin: "管理员", author: "任务管理员", doctor: "判读者" };
-const CAREER_LABELS = { graduate: "研究生", practitioner: "已入职大夫" };
 const STATUS_LABELS = { in_progress: "进行中", submitted: "已提交" };
 
 function escapeHtml(s) {
@@ -63,7 +63,7 @@ function renderAttemptSummaryTable(list) {
         <thead><tr><th>用户</th><th>Accuracy</th><th>AUC</th><th>NPV</th><th>PPV</th><th>Sensitivity</th><th>Specificity</th><th>已提交已答</th><th>进行中已答</th><th>不确定</th></tr></thead>
         <tbody>${list.map((user) => `
           <tr>
-            <td>${escapeHtml(user.username)}${user.display_name ? `<span class="history-subtext">${escapeHtml(user.display_name)}</span>` : ""}${user.work_hospital ? `<span class="history-subtext">${escapeHtml(user.work_hospital)}</span>` : ""}${user.physician_title ? `<span class="history-subtext">${escapeHtml(user.physician_title)}</span>` : ""}${user.career_stage ? `<span class="history-subtext">${escapeHtml(CAREER_LABELS[user.career_stage] || user.career_stage)}</span>` : ""}</td>
+            <td>${escapeHtml(user.username)}${user.display_name ? `<span class="history-subtext">${escapeHtml(user.display_name)}</span>` : ""}${user.work_hospital ? `<span class="history-subtext">${escapeHtml(user.work_hospital)}</span>` : ""}${user.physician_title ? `<span class="history-subtext">${escapeHtml(user.physician_title)}</span>` : ""}${user.career_stage ? `<span class="history-subtext">${escapeHtml(formatCareerLabel(user))}</span>` : ""}</td>
             <td>${formatAgreement(user)}</td>
             <td>${formatAuc(user.auc)}</td>
             <td>${formatPercent(user.npv)}</td>
@@ -114,7 +114,7 @@ async function loadUsers() {
         <tbody>${list.map((user) => `
           <tr>
             <td>${user.id}</td>
-            <td>${escapeHtml(user.username)}${user.display_name ? `<span class="history-subtext">${escapeHtml(user.display_name)}</span>` : ""}${user.work_hospital ? `<span class="history-subtext">${escapeHtml(user.work_hospital)}</span>` : ""}${user.physician_title ? `<span class="history-subtext">${escapeHtml(user.physician_title)}</span>` : ""}${user.career_stage ? `<span class="history-subtext">${escapeHtml(CAREER_LABELS[user.career_stage] || user.career_stage)}</span>` : ""}</td>
+            <td>${escapeHtml(user.username)}${user.display_name ? `<span class="history-subtext">${escapeHtml(user.display_name)}</span>` : ""}${user.work_hospital ? `<span class="history-subtext">${escapeHtml(user.work_hospital)}</span>` : ""}${user.physician_title ? `<span class="history-subtext">${escapeHtml(user.physician_title)}</span>` : ""}${user.career_stage ? `<span class="history-subtext">${escapeHtml(formatCareerLabel(user))}</span>` : ""}</td>
             <td><span class="chip">${ROLE_LABELS[user.role] || user.role}</span><span class="history-subtext">${user.is_active ? "启用" : "停用"}</span></td>
             <td>${renderUserProgress(user)}</td>
             <td>${renderUserCoreMetrics(user)}</td>
@@ -138,7 +138,7 @@ function openUserModal(user) {
   $("m-display").value = user.display_name || "";
   $("m-hospital").value = user.work_hospital || "";
   $("m-title").value = user.physician_title || "";
-  $("m-career").value = user.career_stage || "";
+  fillCareerFields(user, $("m-career"), $("m-career-other"), $("m-career-other-wrap"));
   $("m-license-years").value = user.license_years ?? "";
   $("m-role").value = user.role;
   $("m-active").checked = !!user.is_active;
@@ -162,6 +162,7 @@ function bindUserModal() {
       work_hospital: $("m-hospital").value || null,
       physician_title: $("m-title").value || null,
       career_stage: $("m-career").value || null,
+      career_stage_other: $("m-career").value === "other" ? ($("m-career-other").value || null) : null,
     };
     const licenseRaw = $("m-license-years").value.trim();
     payload.license_years = licenseRaw === "" ? null : Number(licenseRaw);
@@ -235,6 +236,11 @@ function bindFilter() {
 
 (async function init() {
   if (!(await ensureAdmin())) return;
+  bindCareerStageField({
+    stageId: "m-career",
+    otherWrapId: "m-career-other-wrap",
+    otherInputId: "m-career-other",
+  });
   bindTabs();
   bindUserModal();
   bindFilter();

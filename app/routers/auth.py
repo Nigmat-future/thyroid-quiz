@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db import get_db
-from app.models import ROLE_DOCTOR, User
+from app.models import CAREER_OTHER, ROLE_DOCTOR, User
 from app.schemas import UserCreate, UserLogin, UserProfileUpdate, UserPublic
 from app.security import hash_password, verify_password
 
@@ -40,6 +40,7 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
         display_name=payload.display_name,
         work_hospital=payload.work_hospital,
         career_stage=payload.career_stage,
+        career_stage_other=payload.career_stage_other,
         license_years=payload.license_years,
         physician_title=payload.physician_title,
         role=ROLE_DOCTOR,
@@ -100,6 +101,7 @@ def update_me(
             payload.work_hospital,
             payload.physician_title,
             payload.career_stage,
+            payload.career_stage_other,
             payload.license_years,
         )
     ):
@@ -113,6 +115,16 @@ def update_me(
         user.physician_title = payload.physician_title
     if payload.career_stage is not None:
         user.career_stage = payload.career_stage
+        if payload.career_stage != CAREER_OTHER:
+            user.career_stage_other = None
+    if payload.career_stage_other is not None:
+        user.career_stage_other = payload.career_stage_other
+
+    if user.career_stage == CAREER_OTHER and not (
+        user.career_stage_other and user.career_stage_other.strip()
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "选择「其他」时请填写身份说明")
+
     if payload.license_years is not None:
         user.license_years = payload.license_years
 
