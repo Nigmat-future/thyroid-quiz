@@ -33,7 +33,7 @@ from app.services.attempt_views import (
     build_in_progress_view,
     build_result_view,
 )
-from app.services.scoring import submit_attempt
+from app.services.scoring import IncompleteAttemptError, submit_attempt
 
 attempts_router = APIRouter(prefix="/api/attempts", tags=["attempts"])
 
@@ -193,7 +193,10 @@ def submit(
     if attempt.status == STATUS_SUBMITTED:
         # 幂等：已提交直接返回结果
         return build_result_view(db, attempt)
-    submit_attempt(db, attempt)
+    try:
+        submit_attempt(db, attempt)
+    except IncompleteAttemptError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     return build_result_view(db, attempt)
 
 

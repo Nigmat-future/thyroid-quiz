@@ -17,6 +17,15 @@ from app.models import (
 from app.services.fna import is_answer_correct
 
 
+class IncompleteAttemptError(ValueError):
+    """提交时仍有题目未作答。"""
+
+    def __init__(self, unanswered: int, total: int) -> None:
+        self.unanswered = unanswered
+        self.total = total
+        super().__init__(f"还有 {unanswered} / {total} 题未作答，请完成全部题目后再提交")
+
+
 def submit_attempt(db: Session, attempt: Attempt) -> Attempt:
     """对 attempt 计分并锁定。已提交的不重复处理。"""
     if attempt.status == STATUS_SUBMITTED:
@@ -38,6 +47,15 @@ def submit_attempt(db: Session, attempt: Attempt) -> Attempt:
     total = len(questions)
 
     answers = db.scalars(select(Answer).where(Answer.attempt_id == attempt.id)).all()
+    answers_by_question = {a.question_id: a for a in answers}
+    unanswered = sum(
+        1
+        for q in questions
+        if not (answers_by_question.get(q.id) and answers_by_question[q.id].answer_text.strip())
+    )
+    if unanswered:
+        raise IncompleteAttemptError(unanswered=unanswered, total=total)
+
     correct = 0
     for a in answers:
         q = qmap.get(a.question_id)

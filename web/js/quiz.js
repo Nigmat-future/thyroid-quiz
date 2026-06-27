@@ -15,6 +15,7 @@ let questionEnterAt = Date.now();
 let timeTicker = null;
 let isSubmitting = false;
 let imagePreloadToken = 0;
+let highlightUnanswered = false;
 
 const SAVE_DEBOUNCE_MS = 600;
 
@@ -159,11 +160,24 @@ function reviewCount() {
   return n;
 }
 
+function setQuizFeedback(message, kind = "error") {
+  const el = $("quiz-feedback");
+  if (!el) return;
+  el.textContent = message || "";
+  el.dataset.kind = message ? kind : "";
+}
+
+function setUnansweredHighlight(on) {
+  highlightUnanswered = Boolean(on);
+  renderNav();
+}
+
 function navButton(q, i) {
   const a = ensureAnswer(q.id);
   const cls = ["nav-pill"];
   if (i === currentIdx) cls.push("active");
   if (a.answer_text) cls.push("answered");
+  else if (highlightUnanswered) cls.push("unanswered-alert");
   if (a.review_flag) cls.push("reviewed");
   return `<button class="${cls.join(" ")}" data-idx="${i}" title="第 ${questionLabel(q, i)} 题">${questionLabel(q, i)}</button>`;
 }
@@ -283,6 +297,10 @@ function chooseAnswer(value) {
   });
   setSaveState("保存中...", "muted");
   scheduleSave();
+  if (highlightUnanswered && answeredCount() === attempt.questions.length) {
+    setUnansweredHighlight(false);
+    setQuizFeedback("");
+  }
   renderNav();
 }
 
@@ -305,22 +323,33 @@ function toggleReview() {
 }
 
 async function goTo(idx) {
-  if (idx < 0 || idx >= attempt.questions.length || idx === currentIdx) return;
-  await flushSave({ includeTime: true });
+  if (idx < 0 || idx >= attempt.questions.length || idx === currentIdx) return false;
+  const saved = await flushSave({ includeTime: true });
+  if (!saved) {
+    setQuizFeedback("当前题保存失败，请检查网络后重试，无法切换题目。");
+    return false;
+  }
+  setQuizFeedback("");
   renderQuestion(idx);
+  return true;
 }
 
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { flushSave({ includeTime: true }).catch(() => {}); }, SAVE_DEBOUNCE_MS);
+  saveTimer = setTimeout(() => {
+    flushSave({ includeTime: true }).catch((e) => {
+      setQuizFeedback("自动保存失败：" + (e.message || "请检查网络"), "error");
+    });
+  }, SAVE_DEBOUNCE_MS);
 }
 
-async function flushSave({ includeTime = false } = {}) {
-  if (!attempt || !attempt.questions.length) return true;
-  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-  if (includeTime) accrueCurrentTime();
+async function persistAnswer(questionId, { includeTime = false } = {}) {
+  const idx = attempt.questions.findIndex((q) => q.id === questionId);
+  if (idx < 0) return true;
+  const wasCurrent = idx === currentIdx;
+  if (includeTime && wasCurrent) accrueCurrentTime();
 
-  const q = currentQuestion();
+  const q = attempt.questions[idx];
   const cur = ensureAnswer(q.id);
   if (!cur.dirty) return true;
 
@@ -336,10 +365,38 @@ async function flushSave({ includeTime = false } = {}) {
     cur.review_flag = Boolean(saved.review_flag);
     cur.time_spent_seconds = Math.max(cur.time_spent_seconds || 0, saved.time_spent_seconds || 0);
     cur.dirty = false;
-    setSaveState("已保存", "success");
+    if (wasCurrent) {
+      setSaveState("已保存", "success");
+      updateTimeLabel();
+    }
     renderNav();
-    updateTimeLabel();
     return true;
+  } catch (e) {
+    if (wasCurrent) setSaveState("保存失败：" + e.message, "error");
+    throw e;
+  }
+}
+
+async function flushAllDirty() {
+  if (!attempt || !attempt.questions.length) return true;
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  accrueCurrentTime();
+  try {
+    for (const q of attempt.questions) {
+      if (!ensureAnswer(q.id).dirty) continue;
+      await persistAnswer(q.id);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function flushSave({ includeTime = false } = {}) {
+  if (!attempt || !attempt.questions.length) return true;
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  try {
+    return await persistAnswer(currentQuestion().id, { includeTime });
   } catch (e) {
     setSaveState("保存失败：" + e.message, "error");
     return false;
@@ -352,9 +409,13 @@ function isEditableTarget(target) {
 }
 
 function bindControls() {
-  $("prev-btn").addEventListener("click", () => goTo(currentIdx - 1));
-  $("next-btn").addEventListener("click", () => goTo(currentIdx + 1));
-  $("save-btn").addEventListener("click", () => flushSave({ includeTime: true }));
+  $("prev-btn").addEventListener("click", () => { goTo(currentIdx - 1); });
+  $("next-btn").addEventListener("click", () => { goTo(currentIdx + 1); });
+  $("save-btn").addEventListener("click", async () => {
+    const saved = await flushSave({ includeTime: true });
+    if (!saved) setQuizFeedback("保存失败，请检查网络后重试。");
+    else setQuizFeedback("");
+  });
   $("review-toggle").addEventListener("click", toggleReview);
   $("submit-btn").addEventListener("click", openSubmitReview);
   $("submit-cancel-btn").addEventListener("click", closeSubmitReview);
@@ -406,7 +467,31 @@ function submitStats() {
 
 function openSubmitReview() {
   accrueCurrentTime();
-  const stats = submitStats();
+  flushSave({ includeTime: true }).then((saved) => {
+    if (!saved) {
+      setQuizFeedback("当前题保存失败，请检查网络后重试。");
+      return;
+    }
+    const stats = submitStats();
+    if (stats.unanswered.length > 0) {
+      setUnansweredHighlight(true);
+      setQuizFeedback(
+        `还有 ${stats.unanswered.length} 题未作答，请完成全部 ${stats.total} 题后再提交。`,
+        "error",
+      );
+      const firstIdx = stats.unanswered[0][1];
+      if (firstIdx !== currentIdx) goTo(firstIdx);
+      return;
+    }
+    setUnansweredHighlight(false);
+    setQuizFeedback("");
+    renderSubmitModal(stats);
+  }).catch((e) => {
+    setQuizFeedback("保存失败：" + (e.message || "请检查网络"), "error");
+  });
+}
+
+function renderSubmitModal(stats) {
   $("submit-review-grid").innerHTML = `
     <div class="summary-card"><span>已评估</span><strong>${stats.answered}</strong></div>
     <div class="summary-card"><span>未答</span><strong>${stats.unanswered.length}</strong></div>
@@ -420,9 +505,7 @@ function openSubmitReview() {
       ${rows.length ? `<div class="submit-review-pills">${rows.map(([q, i]) => `<button type="button" class="nav-pill ${ensureAnswer(q.id).review_flag ? "reviewed" : ""}" data-jump="${i}">${questionLabel(q, i)}</button>`).join("")}</div>` : `<p class="brand-copy">${empty}</p>`}
     </div>
   `;
-  $("submit-review-list").innerHTML =
-    makeList("未评估病例", stats.unanswered, "无未评估病例。") +
-    makeList("已标记复查", stats.review, "无复查标记。");
+  $("submit-review-list").innerHTML = makeList("已标记复查", stats.review, "无复查标记。");
 
   $("submit-review-list").querySelectorAll("button[data-jump]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -430,6 +513,7 @@ function openSubmitReview() {
       goTo(Number(btn.dataset.jump));
     });
   });
+  $("submit-confirm-btn").disabled = false;
   $("submit-modal").classList.remove("hidden");
 }
 
@@ -442,19 +526,37 @@ async function doSubmit() {
   isSubmitting = true;
   $("submit-confirm-btn").disabled = true;
   $("submit-btn").disabled = true;
-  const saved = await flushSave({ includeTime: true });
+
+  const saved = await flushAllDirty();
   if (!saved) {
-    $("quiz-feedback").textContent = "当前题保存失败，请稍后重试后再提交。";
+    setQuizFeedback("保存失败，请检查网络后重试再提交。");
     $("submit-confirm-btn").disabled = false;
     $("submit-btn").disabled = false;
     isSubmitting = false;
     return;
   }
+
+  const stats = submitStats();
+  if (stats.unanswered.length > 0) {
+    closeSubmitReview();
+    setUnansweredHighlight(true);
+    setQuizFeedback(
+      `还有 ${stats.unanswered.length} 题未作答，请完成全部 ${stats.total} 题后再提交。`,
+      "error",
+    );
+    const firstIdx = stats.unanswered[0][1];
+    if (firstIdx !== currentIdx) await goTo(firstIdx);
+    $("submit-confirm-btn").disabled = false;
+    $("submit-btn").disabled = false;
+    isSubmitting = false;
+    return;
+  }
+
   try {
     await apiPost(`/api/attempts/${attempt.id}/submit`);
     window.location.href = `/result/${attempt.id}`;
   } catch (e) {
-    $("quiz-feedback").textContent = "提交失败：" + e.message;
+    setQuizFeedback("提交失败：" + e.message, "error");
     $("submit-confirm-btn").disabled = false;
     $("submit-btn").disabled = false;
     isSubmitting = false;

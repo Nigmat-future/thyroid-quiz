@@ -1010,6 +1010,19 @@ h2 .chip {
   color: #675116;
 }
 
+.nav-pill.unanswered-alert {
+  border-color: #e07a7a;
+  background: #fdeeee;
+  color: #8f1f1f;
+  box-shadow: 0 0 0 1px rgba(224, 122, 122, 0.35);
+}
+
+.nav-pill.active.unanswered-alert {
+  border-color: #c94a4a;
+  background: #e85d5d;
+  color: #fff;
+}
+
 .nav-pill.active.answered,
 .nav-pill.active.reviewed {
   border-color: var(--primary-hover);

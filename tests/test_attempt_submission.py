@@ -81,7 +81,7 @@ def test_submit_calculates_score(client: TestClient) -> None:
     attempt = client.post("/api/attempts", json={"task_code": "t1"}).json()
     questions = attempt["questions"]
 
-    answers = ["良性", "恶性", "恶性", ""]
+    answers = ["良性", "恶性", "良性", "恶性"]
     for question, answer in zip(questions, answers, strict=True):
         client.put(
             f"/api/attempts/{attempt['id']}/answers/{question['id']}",
@@ -93,14 +93,44 @@ def test_submit_calculates_score(client: TestClient) -> None:
     result = response.json()
     assert result["status"] == "submitted"
     assert result["total"] == 4
-    assert result["answered"] == 3
+    assert result["answered"] == 4
     assert "correct" not in result
     assert "score" not in result
     with SessionLocal() as db:
         saved = db.get(Attempt, attempt["id"])
         assert saved is not None
-        assert saved.correct == 2
-        assert abs(saved.score - 0.5) < 1e-6
+        assert saved.correct == 4
+        assert abs(saved.score - 1.0) < 1e-6
+
+
+def test_submit_rejects_incomplete_attempt(client: TestClient) -> None:
+    author = TestClient(client.app)
+    _make_user(author, "auth1", ROLE_AUTHOR)
+    _login(author, "auth1")
+    _seed_task(author, code="t1", n_q=4, gts=["良性", "恶性", "良性", "恶性"])
+
+    _make_user(client, "doc1", ROLE_DOCTOR)
+    _login(client, "doc1")
+    attempt = client.post("/api/attempts", json={"task_code": "t1"}).json()
+    questions = attempt["questions"]
+
+    client.put(
+        f"/api/attempts/{attempt['id']}/answers/{questions[0]['id']}",
+        json={"answer_text": "良性"},
+    )
+    client.put(
+        f"/api/attempts/{attempt['id']}/answers/{questions[1]['id']}",
+        json={"answer_text": "恶性"},
+    )
+
+    response = client.post(f"/api/attempts/{attempt['id']}/submit")
+    assert response.status_code == 409, response.text
+    assert "未作答" in response.json()["detail"]
+
+    with SessionLocal() as db:
+        saved = db.get(Attempt, attempt["id"])
+        assert saved is not None
+        assert saved.status == "in_progress"
 
 
 def test_submit_locks_attempt(client: TestClient) -> None:
