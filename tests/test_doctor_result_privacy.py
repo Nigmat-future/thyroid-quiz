@@ -112,9 +112,10 @@ def test_doctor_history_only_shows_completion(client: TestClient) -> None:
     _seed_task(author, "history_open", ["良性", "恶性"])
     _make_user(client, "history_doc")
     _login(client, "history_doc")
-    submitted = _create_attempt_with_answers(client, "history_done", ["良性", ""])
+    submitted = _create_attempt_with_answers(client, "history_done", ["良性", "恶性"])
     in_progress = _create_attempt_with_answers(client, "history_open", ["恶性", ""])
-    client.post(f"/api/attempts/{submitted['id']}/submit")
+    submit_response = client.post(f"/api/attempts/{submitted['id']}/submit")
+    assert submit_response.status_code == 200, submit_response.text
 
     # When: the doctor opens their own attempt history.
     response = client.get("/api/attempts")
@@ -123,7 +124,7 @@ def test_doctor_history_only_shows_completion(client: TestClient) -> None:
     assert response.status_code == 200, response.text
     rows = {item["id"]: item for item in response.json()}
     assert rows[submitted["id"]]["status"] == "submitted"
-    assert rows[submitted["id"]]["answered"] == 1
+    assert rows[submitted["id"]]["answered"] == 2
     assert rows[submitted["id"]]["total"] == 2
     assert rows[in_progress["id"]]["status"] == "in_progress"
     assert rows[in_progress["id"]]["answered"] == 1
